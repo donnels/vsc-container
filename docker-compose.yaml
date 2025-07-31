@@ -6,6 +6,8 @@ services:
       dockerfile: Dockerfile
     env_file:
       - ./docker/.env
+    environment:
+      - CERT_HOSTNAMES=${CERT_HOSTNAMES:-steamdeck.fritz.box localhost 127.0.0.1 ::1}
     ports:
       - "8443:8443"
     volumes:
@@ -13,8 +15,10 @@ services:
       - ./data:/data
       - code-server-config:/home/coder/.config/code-server
       - code-server-data:/home/coder/.local/share/code-server
-    command: ["/usr/bin/code-server", "/data", "--bind-addr", "0.0.0.0:8443", "--auth", "password", "--cert", "/home/coder/.config/code-server/certs/code-server.crt", "--cert-key", "/home/coder/.config/code-server/certs/code-server.key"]
+      - code-server-code:/home/coder/code
+    command: ["/usr/bin/code-server", "/home/coder/code", "--bind-addr", "0.0.0.0:8443", "--auth", "password", "--cert", "/home/coder/.config/code-server/certs/code-server.crt", "--cert-key", "/home/coder/.config/code-server/certs/code-server.key"]
     restart: unless-stopped
 volumes:
   code-server-config:
   code-server-data:
+  code-server-code:
