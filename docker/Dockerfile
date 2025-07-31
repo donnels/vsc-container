@@ -3,18 +3,23 @@ FROM docker.io/codercom/code-server:latest
 USER root
 
 # Install additional packages and mkcert
-RUN apt-get update && \
-    apt-get install -y openssl graphviz openjdk-17-jre-headless libnss3-tools wget && \
-    wget -O /usr/local/bin/mkcert https://github.com/FiloSottile/mkcert/releases/download/v1.4.4/mkcert-v1.4.4-linux-amd64 && \
-    chmod +x /usr/local/bin/mkcert && \
-    rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+    && apt-get install -y \
+        openssl \
+        plantuml graphviz openjdk-17-jre-headless \
+        libnss3-tools \
+        wget curl \
+    && wget -O /usr/local/bin/mkcert https://github.com/FiloSottile/mkcert/releases/download/v1.4.4/mkcert-v1.4.4-linux-amd64 \
+    && chmod +x /usr/local/bin/mkcert \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy cert generation script
 COPY generate_certs.sh /usr/local/bin/generate_certs.sh
 RUN chmod +x /usr/local/bin/generate_certs.sh
 
-# Ensure certs directory exists and is owned by coder
-RUN mkdir -p /home/coder/.config/code-server/certs && chown -R coder:coder /home/coder/.config/code-server
+# Ensure all parent directories exist and are owned by coder
+RUN mkdir -p /home/coder/.config/code-server/certs /home/coder/.local/share/mkcert \
+    && chown -R coder:coder /home/coder/.config/code-server /home/coder/.local/share
 
 USER coder
 
