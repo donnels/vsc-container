@@ -1,0 +1,9 @@
+@startuml
+start
+:Clone repository;
+:Copy .env.template to .env and edit;
+:Build and start containers (docker-compose -f code-server.yaml up);
+:generate_certs.sh runs to create SSL certs;
+:Access code-server via browser;
+stop
+@enduml

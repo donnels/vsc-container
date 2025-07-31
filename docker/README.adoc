@@ -1,0 +1,23 @@
+= Docker Directory
+
+This directory contains everything needed to build and run the containerized VS Code server environment for remote development.
+
+== Contents
+
+- `Dockerfile`: Builds the code-server image with Nginx and SSL support.
+- `nginx.conf`: Nginx configuration for SSL termination and reverse proxy to code-server.
+- `generate_certs.sh`: Script to generate self-signed SSL certificates.
+- `.env.template`: Example environment file for configuration variables.
+- `code-server.yaml`: Docker Compose file to orchestrate the code-server and Nginx services.
+
+== How it Works
+
+. Build the image and start the services with Docker Compose:
++
+----
+docker-compose -f code-server.yaml up
+----
+. The `generate_certs.sh` script runs to create SSL certificates for Nginx.
+. Nginx terminates SSL and proxies requests to the code-server running on port 8080.
+. The code-server UI is protected by a login prompt ("Virtual Sace Research") and uses a secure password hash for authentication.
+. Access your remote VS Code environment at `https://<your-virtual-host>:443`.

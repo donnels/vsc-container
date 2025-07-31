@@ -1,0 +1,23 @@
+@startuml
+package "docker" {
+  folder ".devcontainer" {
+    file "devcontainer.json"
+    file "Dockerfile"
+  }
+  folder "config" {
+    file "nginx.conf"
+  }
+  folder "scripts" {
+    file "generate_certs.sh"
+  }
+  file ".env.template"
+  file "code-server.yaml"
+}
+
+actor User
+User --> ".env.template": "Edit env vars"
+User --> "code-server.yaml": "Run compose"
+"code-server.yaml" --> "Dockerfile": "Build image"
+"Dockerfile" --> "nginx.conf": "Copy config"
+"Dockerfile" --> "generate_certs.sh": "Run script"
+@enduml

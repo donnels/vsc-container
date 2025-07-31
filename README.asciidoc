@@ -1,2 +1,45 @@
-= initial readme
+= vscode-container-project
 
+This project provides a simple, containerized VS Code server environment for remote development.
+
+== Quick Start
+
+. Clone this repository:
++
+----
+git clone https://github.com/yourusername/vscode-container-project.git
+cd vscode-container-project
+----
+. Copy `.env.template` to `.env` in the `docker` directory and edit as needed.
+. Build and run the container:
++
+----
+docker-compose up
+----
+. Access the code server at `https://<your-virtual-host>:<port>`.
+
+== Directory Structure
+
+[source]
+----
+docker/
+  Dockerfile
+  nginx.conf
+  generate_certs.sh
+  .env.template
+  code-server.yaml
+  extensions.json
+images/
+  build-process.puml
+  config-overview.puml
+data/
+test-diagram.puml
+test.adoc
+docker-compose.yaml
+----
+
+== Notes
+
+- The `data/` directory is mounted into the container at `/data` for persistent or shared files.
+- The container loads recommended VS Code extensions from `docker/extensions.json` (including PlantUML and AsciiDoctor).
+- Example test files are provided in the project root.

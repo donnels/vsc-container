@@ -1,0 +1,30 @@
+version: '3.8'
+services:
+  code-server:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+      - "443:443"
+    volumes:
+      - .:/workspace
+    command: ["/usr/bin/code-server", "--bind-addr", "0.0.0.0:8080", ".", "--auth", "password", "--password-hash", "${CODE_SERVER_PASSWORD_HASH}", "--auth-message", "${CODE_SERVER_AUTH_MESSAGE}"]
+    restart: unless-stopped
+    environment:
+      - PASSWORD_HASH=${CODE_SERVER_PASSWORD_HASH}
+      - AUTH_MESSAGE=${CODE_SERVER_AUTH_MESSAGE}
+    depends_on:
+      - nginx
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/ssl/certs:/etc/ssl/certs
+      - /etc/ssl/private:/etc/ssl/private
+    ports:
+      - "443:443"
+    depends_on:
+      - code-server

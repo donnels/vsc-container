@@ -1,0 +1,8 @@
+# Ignore environment files
+.env
+# Ignore generated SSL certs
+*.crt
+*.key
+# Ignore Docker build cache and other temp files
+**/__pycache__/
+*.log

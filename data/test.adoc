@@ -1,0 +1,3 @@
+= Test AsciiDoc
+
+This is a test AsciiDoc file for the project root.
