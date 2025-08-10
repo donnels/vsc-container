@@ -2,23 +2,36 @@ version: '3.8'
 services:
   code-server:
     build:
-      context: ./docker
+      context: ./docker-vsc
       dockerfile: Dockerfile
     env_file:
-      - ./docker/.env
+      - ./docker-vsc/.env
     environment:
       - CERT_HOSTNAMES=${CERT_HOSTNAMES:-steamdeck.fritz.box localhost 127.0.0.1 ::1}
     ports:
       - "8443:8443"
     volumes:
-      - ./docker:/workspace
-      - ./data:/data
+      - ../:/workspace
+      - ../data:/data
       - code-server-config:/home/coder/.config/code-server
       - code-server-data:/home/coder/.local/share/code-server
       - code-server-code:/home/coder/code
     command: ["/usr/bin/code-server", "/home/coder/code", "--bind-addr", "0.0.0.0:8443", "--auth", "password", "--cert", "/home/coder/.config/code-server/certs/code-server.crt", "--cert-key", "/home/coder/.config/code-server/certs/code-server.key"]
     restart: unless-stopped
+
+  cert-generator:
+    build:
+      context: ./docker-certbot
+      dockerfile: Dockerfile
+    env_file:
+      - ./docker-certbot/.env
+    volumes:
+      - cert-output:/etc/letsencrypt/live
+    profiles:
+      - tools
+
 volumes:
   code-server-config:
   code-server-data:
   code-server-code:
+  cert-output:

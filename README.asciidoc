@@ -1,45 +1,88 @@
-= vscode-container-project
+= VSCode Container Project
 
-This project provides a simple, containerized VS Code server environment for remote development.
+This project provides a containerized VS Code server environment with SSL certificate support for secure remote development.
 
 == Quick Start
 
 . Clone this repository:
 +
 ----
-git clone https://github.com/yourusername/vscode-container-project.git
-cd vscode-container-project
+git clone https://github.com/donnels/vsc-container.git
+cd vsc-container
 ----
-. Copy `.env.template` to `.env` in the `docker` directory and edit as needed.
+
+. Navigate to the docker directory:
++
+----
+cd docker
+----
+
+. Copy environment template and configure:
++
+----
+cp docker-vsc/.env.template docker-vsc/.env
+# Edit docker-vsc/.env with your settings
+----
+
 . Build and run the container:
 +
 ----
 docker-compose up
 ----
-. Access the code server at `https://<your-virtual-host>:<port>`.
+
+. Access VS Code at `https://localhost:8443`
+
+== Certificate Generation
+
+For Let's Encrypt certificates with Cloudflare DNS:
+
+. Configure cert generator:
++
+----
+cp docker-certbot/.env.template docker-certbot/.env
+# Add your Cloudflare API token and domain
+----
+
+. Generate certificates:
++
+----
+docker-compose --profile tools run cert-generator
+----
+
+See link:steps-to-create-certs.asciidoc[Certificate Generation Guide] for detailed instructions.
 
 == Directory Structure
 
-[source]
 ----
 docker/
-  Dockerfile
-  nginx.conf
-  generate_certs.sh
-  .env.template
-  code-server.yaml
-  extensions.json
-images/
-  build-process.puml
-  config-overview.puml
-data/
-test-diagram.puml
-test.adoc
-docker-compose.yaml
+├── docker-compose.yaml          # Main orchestration file
+├── docker-vsc/                  # VS Code server container
+│   ├── Dockerfile
+│   ├── generate_certs.sh
+│   ├── nginx.conf
+│   └── .env.template
+└── docker-certbot/              # Certificate generation container
+    ├── Dockerfile
+    ├── entrypoint.sh
+    └── .env.template
+images/                           # PlantUML diagrams
+data/                            # Test and example files
+docs/                            # Generated documentation (HTML/PDF)
 ----
 
-== Notes
+== Features
 
-- The `data/` directory is mounted into the container at `/data` for persistent or shared files.
-- The container loads recommended VS Code extensions from `docker/extensions.json` (including PlantUML and AsciiDoctor).
-- Example test files are provided in the project root.
+- SSL-enabled VS Code server with automatic certificate generation
+- PlantUML and AsciiDoctor extensions pre-installed
+- Let's Encrypt certificate support via Cloudflare DNS
+- Automatic documentation building via GitHub Actions
+- Persistent volumes for configuration and data
+
+== Development
+
+This project uses:
+
+- **AsciiDoc** (`.asciidoc`) for main documentation
+- **PlantUML** (`.plantuml`) for diagrams  
+- **Include files** (`.adoc`, `.puml`) for reusable content
+- **GitHub Actions** for automated builds of documentation and diagrams

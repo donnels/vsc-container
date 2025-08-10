@@ -1,0 +1,87 @@
+name: Build Documentation and Diagrams
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths: 
+      - '**.asciidoc'
+      - '**.plantuml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '**.asciidoc'
+      - '**.plantuml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Setup Java for PlantUML
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+    
+    - name: Install AsciiDoctor and dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y asciidoctor graphviz
+        sudo gem install asciidoctor-pdf
+        wget -O plantuml.jar https://github.com/plantuml/plantuml/releases/download/v1.2024.0/plantuml-1.2024.0.jar
+        sudo cp plantuml.jar /usr/local/bin/
+    
+    - name: Ensure docs directory exists
+      run: mkdir -p docs
+    
+    - name: Build AsciiDoc files to HTML
+      run: |
+        find . -name "*.asciidoc" -not -path "./docs/*" | while read file; do
+          echo "Processing $file to HTML"
+          filename=$(basename "$file" .asciidoc)
+          asciidoctor "$file" -o "docs/${filename}.html"
+        done
+    
+    - name: Build AsciiDoc files to PDF
+      run: |
+        find . -name "*.asciidoc" -not -path "./docs/*" | while read file; do
+          echo "Processing $file to PDF"
+          filename=$(basename "$file" .asciidoc)
+          asciidoctor-pdf "$file" -o "docs/${filename}.pdf"
+        done
+    
+    - name: Build PlantUML files to PNG
+      run: |
+        find . -name "*.plantuml" | while read file; do
+          echo "Processing $file to PNG"
+          dir=$(dirname "$file")
+          java -jar /usr/local/bin/plantuml.jar -tpng "$file" -o "$dir"
+        done
+    
+    - name: List generated files
+      run: |
+        echo "Generated HTML files:"
+        ls -la docs/*.html 2>/dev/null || echo "No HTML files found"
+        echo "Generated PDF files:"
+        ls -la docs/*.pdf 2>/dev/null || echo "No PDF files found"  
+        echo "Generated PNG files:"
+        find . -name "*.png" -type f 2>/dev/null || echo "No PNG files found"
+    
+    - name: Commit and push generated files
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add docs/ images/*.png **/*.png
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Auto-generated documentation and diagrams [skip ci]"
+          git push
+        fi

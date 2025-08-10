@@ -1,8 +1,19 @@
-# Ignore environment files
+# Environment files
 .env
-# Ignore generated SSL certs
+docker/*/.env
+
+# Generated SSL certificates
 *.crt
 *.key
-# Ignore Docker build cache and other temp files
+
+# Docker build cache and temp files
 **/__pycache__/
 *.log
+
+# Generated documentation (auto-built by GitHub Actions)
+docs/*.html
+docs/*.pdf
+
+# Generated diagrams (auto-built by GitHub Actions)
+images/*.png
+**/*.png
