@@ -6,11 +6,17 @@ on:
     paths: 
       - '**.asciidoc'
       - '**.plantuml'
+      - 'images/**'
+      - 'docs/**'
+      - '.github/workflows/build-docs.yml'
   pull_request:
     branches: [ main ]
     paths:
       - '**.asciidoc'
       - '**.plantuml'
+      - 'images/**'
+      - 'docs/**'
+      - '.github/workflows/build-docs.yml'
 
 permissions:
   contents: write
