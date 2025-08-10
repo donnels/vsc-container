@@ -1,0 +1,58 @@
+= VSCode Container Service
+
+This directory contains the VS Code server container configuration for secure remote development.
+
+== Contents
+
+- `Dockerfile`: Builds the code-server image with SSL support and development tools
+- `generate_certs.sh`: Script to generate self-signed SSL certificates using mkcert or OpenSSL
+- `.env.template`: Example environment file for configuration variables
+- `extensions.json`: Recommended VS Code extensions (PlantUML, AsciiDoctor)
+- `nginx.conf`: Nginx configuration (currently unused, SSL handled directly by code-server)
+
+== How it Works
+
+The VS Code container is designed to run as part of the main docker-compose setup:
+
+. From the `docker/` directory, run:
++
+----
+docker-compose up
+----
+
+. The container starts and automatically:
+   - Generates SSL certificates for secure HTTPS access
+   - Installs recommended extensions (PlantUML, AsciiDoctor) 
+   - Starts code-server on port 8443 with SSL enabled
+
+. Access your VS Code environment at `https://localhost:8443`
+
+== Certificate Generation
+
+The `generate_certs.sh` script handles SSL certificate creation:
+
+- **Preferred**: Uses `mkcert` for locally trusted certificates
+- **Fallback**: Uses OpenSSL for self-signed certificates  
+- Supports multiple hostnames via `CERT_HOSTNAMES` environment variable
+
+== Development Tools Included
+
+- **PlantUML**: For creating diagrams (with Java runtime and Graphviz)
+- **AsciiDoctor**: For documentation authoring
+- **mkcert**: For generating trusted local certificates
+- **Standard development tools**: curl, wget, openssl
+
+== Configuration
+
+Copy `.env.template` to `.env` and customize:
+
+----
+CERT_HOSTNAMES=localhost 127.0.0.1 steamdeck.fritz.box
+----
+
+== Security
+
+- Code-server requires password authentication
+- All traffic is encrypted via HTTPS
+- Certificates are automatically generated and managed
+- Container runs as non-root user (`coder`)

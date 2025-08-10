@@ -10,10 +10,3 @@ docker/*/.env
 **/__pycache__/
 *.log
 
-# Generated documentation (auto-built by GitHub Actions)
-docs/*.html
-docs/*.pdf
-
-# Generated diagrams (auto-built by GitHub Actions)
-images/*.png
-**/*.png
