@@ -5,8 +5,7 @@ services:
     command: -conf /etc/coredns/Corefile
     volumes:
       - ./docker-coredns/Corefile:/etc/coredns/Corefile:ro
-      - ./docker-coredns/vsagcrd.org.db:/etc/coredns/vsagcrd.org.db:ro
-      - ./docker-coredns/reverse.db:/etc/coredns/reverse.db:ro
+      - ./docker-coredns/hosts:/etc/coredns/hosts:ro
     networks:
       internal:
         ipv4_address: 172.20.0.10

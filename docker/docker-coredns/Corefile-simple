@@ -1,7 +1,6 @@
 . {
-    # Auto-detect local DNS from system configuration
-    # This will use Fritz Box (10.251.2.1) when home, mobile DNS when traveling
-    forward . /etc/resolv.conf
+    # Forward all external DNS queries to public DNS servers
+    forward . 8.8.8.8 1.1.1.1
     
     # Enable caching
     cache 30
@@ -18,10 +17,10 @@
     prometheus :9153
 }
 
-# Internal vsagcrd.org domain using simple hosts file
+# Internal vsagcrd.org domain resolution using simple hosts file
 # This automatically provides BOTH forward and reverse DNS
 vsagcrd.org {
-    hosts /etc/coredns/hosts {
+    hosts /etc/coredns/simple-hosts {
         ttl 300
         reload 5s
         fallthrough

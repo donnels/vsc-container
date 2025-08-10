@@ -1,0 +1,14 @@
+# CoreDNS hosts file for vsagcrd.org internal network
+# Format: IP_address canonical_hostname [aliases...]
+
+# DNS server
+172.20.0.10 coredns.vsagcrd.org dns.vsagcrd.org
+
+# Reverse proxy
+172.20.0.11 proxy.vsagcrd.org www.vsagcrd.org
+
+# VS Code server
+172.20.0.12 vscode.vsagcrd.org code.vsagcrd.org code-server.vsagcrd.org
+
+# Certificate generator
+172.20.0.13 certbot.vsagcrd.org cert-generator.vsagcrd.org

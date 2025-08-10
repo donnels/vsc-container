@@ -25,7 +25,7 @@ This architecture provides:
 All external access flows through the proxy at `your-domain.vsagcrd.org:8443`:
 
 ----
-Internet → your-domain.vsagcrd.org:8443 → proxy.vsagcrd.org → vscode.vsagcrd.org
+Intranet → your-domain.vsagcrd.org:8443 → proxy.vsagcrd.org → vscode.vsagcrd.org
 ----
 
 == Architectural Decisions
@@ -59,10 +59,30 @@ This project exclusively uses a reverse proxy architecture for the following rea
 - Multiple backend support ready
 - Monitoring and logging integration points
 
+=== DNS Architecture: CoreDNS with Dynamic Local Detection
+
+The project uses CoreDNS for internal service discovery with intelligent local DNS detection:
+
+**Local Network Awareness**::
+- Automatically detects and uses local DNS servers (Fritz Box when home, mobile DNS when traveling)
+- No hardcoded DNS servers (avoiding Google DNS, respecting privacy)
+- Seamless portability across different network environments
+
+**Internal Service Discovery**::
+- Simple `/etc/hosts` format for internal services (.vsagcrd.org domain)
+- Automatic forward and reverse DNS generation
+- Easy maintenance with single hosts file
+
+**Network Isolation Benefits**::
+- Internal container communication via DNS names, not IP addresses
+- Clear separation between internal services and external DNS
+- Reduced configuration complexity for users
+
 == Quick Start
 
 . Clone this repository:
 +
+[source,bash]
 ----
 git clone https://github.com/donnels/vsc-container.git
 cd vsc-container/docker
@@ -70,6 +90,7 @@ cd vsc-container/docker
 
 . Generate Let's Encrypt certificates:
 +
+[source,bash]
 ----
 cp docker-certbot/.env.template docker-certbot/.env
 # Edit docker-certbot/.env with your Cloudflare credentials and vsagcrd.org domain
@@ -78,6 +99,7 @@ docker-compose --profile tools run cert-generator
 
 . Configure proxy environment:
 +
+[source,bash]
 ----
 cp docker-proxy/.env.template docker-proxy/.env
 # Edit docker-proxy/.env with your vsagcrd.org subdomain
@@ -85,6 +107,7 @@ cp docker-proxy/.env.template docker-proxy/.env
 
 . Start the development environment:
 +
+[source,bash]
 ----
 docker-compose --profile dev up -d
 ----
@@ -93,6 +116,7 @@ docker-compose --profile dev up -d
 
 . Start the complete environment:
 +
+[source,bash]
 ----
 docker-compose up
 ----
@@ -134,6 +158,7 @@ image::images/proxy-deployment-sequence.png[Production Architecture Flow, 800, 6
 
 === Network Architecture
 
+[source,text]
 ----
 Internet → Nginx Proxy (443/80) → CoreDNS (172.20.0.10) → VS Code Container (vscode.vsagcrd.org:8443)
                 ↓                           ↓
@@ -155,6 +180,7 @@ Internet → Nginx Proxy (443/80) → CoreDNS (172.20.0.10) → VS Code Containe
 
 === Directory Structure
 
+[source,text]
 ----
 docker/
 ├── docker-compose.yaml          # Complete orchestration
@@ -199,6 +225,7 @@ image::images/cert-generator-sequence.png[Certificate Generation Process, 800, 6
 
 . Configure certificate generator:
 +
+[source,bash]
 ----
 cd docker
 cp docker-certbot/.env.template docker-certbot/.env
@@ -206,6 +233,7 @@ cp docker-certbot/.env.template docker-certbot/.env
 
 . Edit `docker-certbot/.env` with your credentials:
 +
+[source,properties]
 ----
 DOMAIN=yoursubdomain.vsagcrd.org
 DOMAINS=yoursubdomain.vsagcrd.org,*.vsagcrd.org
@@ -215,6 +243,7 @@ CLOUDFLARE_ZONE_ID=your_zone_id_here
 
 . Generate certificates:
 +
+[source,bash]
 ----
 docker-compose --profile tools run cert-generator
 ----
@@ -225,6 +254,7 @@ docker-compose --profile tools run cert-generator
 
 Certificates can be renewed by re-running the certificate generator:
 
+[source,bash]
 ----
 docker-compose --profile tools run cert-generator
 docker-compose restart proxy
@@ -257,6 +287,7 @@ For automated renewal, set up a cron job or systemd timer to run the generation 
 
 VS Code service configuration via environment variables:
 
+[source,properties]
 ----
 # Certificate hostnames (for internal certificates)
 CERT_HOSTNAMES=localhost 127.0.0.1
@@ -335,6 +366,7 @@ The system uses one standardized deployment approach:
 
 Access logs for troubleshooting:
 
+[source,bash]
 ----
 # All services
 docker-compose logs
@@ -349,6 +381,7 @@ docker-compose --profile tools logs cert-generator
 
 Monitor certificate expiration:
 
+[source,bash]
 ----
 # Check certificate details
 openssl x509 -in <(docker-compose exec proxy cat /etc/nginx/certs/fullchain.pem) -text -noout
@@ -356,6 +389,7 @@ openssl x509 -in <(docker-compose exec proxy cat /etc/nginx/certs/fullchain.pem)
 
 Automate renewal with cron:
 
+[source,bash]
 ----
 # Add to crontab for monthly renewal
 0 0 1 * * cd /path/to/project/docker && docker-compose --profile tools run cert-generator && docker-compose restart proxy
@@ -372,6 +406,7 @@ Automate renewal with cron:
 
 **Diagnostic Commands**::
 
+[source,bash]
 ----
 # Test certificate generation
 docker-compose --profile tools run cert-generator
@@ -389,6 +424,7 @@ docker-compose exec proxy curl -k https://code-server:8443
 
 Modify `docker-vsc/extensions.json` and rebuild:
 
+[source,json]
 ----
 {
   "recommendations": [
@@ -424,6 +460,9 @@ Edit `docker-proxy/nginx.conf` for:
 
 All documentation and diagrams are automatically built and updated via GitHub Actions.
 
----
+[appendix]
+== Glossary
 
-*This project provides a production-ready, secure development environment following modern containerization and security best practices.*
+include::includes/Include-Glossary.adoc[]
+
+

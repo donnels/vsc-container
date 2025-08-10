@@ -43,59 +43,29 @@ jobs:
         sudo gem install asciidoctor-pdf
         wget -O plantuml.jar https://github.com/plantuml/plantuml/releases/download/v1.2024.0/plantuml-1.2024.0.jar
         sudo cp plantuml.jar /usr/local/bin/
-        
-        # Verify PlantUML installation
-        echo "=== PlantUML Installation Verification ==="
-        ls -la /usr/local/bin/plantuml.jar
-        java -jar /usr/local/bin/plantuml.jar -version
-        echo "=== End Verification ==="
     
     - name: Ensure docs directory exists
       run: mkdir -p docs
     
     - name: Build PlantUML files to PNG
       run: |
-        echo "=== PlantUML Processing Debug ==="
-        echo "Found PlantUML files:"
-        find . -name "*.plantuml" -type f
-        echo ""
-        
         find . -name "*.plantuml" -type f | while read file; do
           echo "Processing: $file"
           dir=$(dirname "$file")
           filename=$(basename "$file" .plantuml)
-          echo "  Directory: $dir"
-          echo "  Filename: $filename"
           
-          # Generate PNG - try different approaches
-          echo "  Running PlantUML..."
-          java -jar /usr/local/bin/plantuml.jar -tpng -v "$file"
+          # Generate PNG
+          java -jar /usr/local/bin/plantuml.jar -tpng "$file"
           
-          echo "  Checking for generated files in various locations:"
-          echo "    Current dir: $(pwd)"
-          find "$dir" -name "${filename}*.png" -type f 2>/dev/null || echo "    No PNG files found in $dir"
-          find . -name "${filename}*.png" -type f 2>/dev/null || echo "    No PNG files found anywhere"
-          
-          # Check if PlantUML created nested directories
+          # Handle nested directory creation by PlantUML
           nested_png="$dir/$dir/$filename.png"
-          direct_png="$dir/$filename.png"
+          target_png="$dir/$filename.png"
           
-          echo "    Checking nested: $nested_png"
           if [ -f "$nested_png" ]; then
-            echo "    Found nested PNG, moving to: $direct_png"
-            mv "$nested_png" "$direct_png"
+            mv "$nested_png" "$target_png"
             rmdir "$dir/$dir" 2>/dev/null || true
-          elif [ -f "$direct_png" ]; then
-            echo "    PNG already in correct location: $direct_png"
-          else
-            echo "    ERROR: No PNG generated for $file"
-            ls -la "$dir/" || echo "    Cannot list directory $dir"
           fi
-          echo ""
         done
-        
-        echo "=== Final PNG file listing ==="
-        find . -name "*.png" -type f
     
     - name: Build AsciiDoc files to HTML
       run: |
@@ -115,12 +85,10 @@ jobs:
     
     - name: List generated files
       run: |
-        echo "Generated HTML files:"
-        ls -la docs/*.html 2>/dev/null || echo "No HTML files found"
-        echo "Generated PDF files:"
-        ls -la docs/*.pdf 2>/dev/null || echo "No PDF files found"  
-        echo "Generated PNG files:"
-        find . -name "*.png" -type f 2>/dev/null || echo "No PNG files found"
+        echo "Generated files:"
+        echo "HTML: $(ls docs/*.html 2>/dev/null | wc -l) files"
+        echo "PDF: $(ls docs/*.pdf 2>/dev/null | wc -l) files"  
+        echo "PNG: $(find . -name '*.png' -type f 2>/dev/null | wc -l) files"
     
     - name: Commit and push generated files
       run: |
