@@ -62,7 +62,17 @@ jobs:
         find . -name "*.plantuml" | while read file; do
           echo "Processing $file to PNG"
           dir=$(dirname "$file")
-          java -jar /usr/local/bin/plantuml.jar -tpng "$file" -o "$dir"
+          filename=$(basename "$file" .plantuml)
+          # Generate PNG in the same directory as the PlantUML file
+          java -jar /usr/local/bin/plantuml.jar -tpng "$file"
+          # PlantUML creates nested directories, so move the file to the correct location
+          nested_png="$dir/$dir/$filename.png"
+          target_png="$dir/$filename.png"
+          if [ -f "$nested_png" ]; then
+            mv "$nested_png" "$target_png"
+            # Clean up empty nested directory
+            rmdir "$dir/$dir" 2>/dev/null || true
+          fi
         done
     
     - name: List generated files
@@ -78,7 +88,13 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add docs/ images/*.png **/*.png
+        # Add generated documentation files
+        git add docs/
+        # Add PNG files if they exist
+        if find . -name "*.png" -type f | grep -q .; then
+          find . -name "*.png" -type f -exec git add {} \;
+        fi
+        # Check if there are any changes to commit
         if git diff --staged --quiet; then
           echo "No changes to commit"
         else
