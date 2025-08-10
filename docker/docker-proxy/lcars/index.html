@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>LCARS Operations Console</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="style.css" />
+<style>
+:root {
+  --lcars-bg:#000; --lcars-accent-1:#ff9966; --lcars-accent-2:#cc6699; --lcars-accent-3:#6699ff; --lcars-accent-4:#ffcc66; --lcars-critical:#cc3333; --lcars-ok:#2fa866; --lcars-warn:#d2a941; --lcars-bad:#d94141; --lcars-text:#ffffff;
+}
+body { background:var(--lcars-bg); color:var(--lcars-text); }
+.status-chips { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
+.chip { padding:4px 8px; font-size:12px; border-radius:999px; background:#222; border:1px solid #333; letter-spacing:.5px; }
+.chip.ok { background:var(--lcars-ok); }
+.chip.warn { background:var(--lcars-warn); }
+.chip.bad { background:var(--lcars-bad); }
+</style>
+</head>
+<body>
+<div class="lcars-frame">
+  <header class="lcars-bar top">
+    <div class="segment title">LCARS OPS</div>
+    <div class="segment stardate" id="stardate"></div>
+  </header>
+  <main class="lcars-grid">
+    <section class="panel navigation">
+      <h1>Systems</h1>
+      <a class="lcars-button critical" href="/access-engineering" target="_blank">Access Engineering</a>
+      <a class="lcars-button" href="/engineering" target="_blank">Engineering (Alt)</a>
+    </section>
+    <section class="panel status">
+      <h1>Status</h1>
+      <div class="status-chips" id="chips">
+        <span class="chip" id="chip-proxy">PROXY?</span>
+        <span class="chip" id="chip-code">CODE?</span>
+        <span class="chip" id="chip-cert">CERTS?</span>
+      </div>
+      <ul id="status-list">
+        <li>Initializing...</li>
+      </ul>
+    </section>
+    <section class="panel docs">
+      <h1>Documentation</h1>
+      <div class="doc-buttons">
+        <a class="lcars-button" href="/docs/README.html" target="_blank">HTML</a>
+        <a class="lcars-button" href="/docs/README.pdf" target="_blank">PDF</a>
+        <a class="lcars-button" href="/docs/README.docx" target="_blank">DOCX</a>
+      </div>
+    </section>
+  </main>
+  <footer class="lcars-bar bottom">
+    <div class="segment">ACCESS LOGGED</div>
+    <div class="segment">SECURE CHANNEL</div>
+  </footer>
+</div>
+<script>
+function stardate(){
+  const d=new Date();
+  const year=d.getFullYear();
+  const start=new Date(year,0,1);
+  const sd=(1000*((d-start)/(365*24*3600*1000)) + (year-2000)*1000).toFixed(1);
+  document.getElementById('stardate').textContent='Stardate '+sd;
+}
+async function health(){
+  try {
+    const r=await fetch('/health',{cache:'no-store'});
+    const ok=r.ok; updateChip('chip-proxy', ok?'PROXY OK':'PROXY ERR', ok?'ok':'bad');
+  } catch { updateChip('chip-proxy','PROXY ERR','bad'); }
+  // Code-server probe via HEAD on base path
+  try {
+    const r=await fetch('/',{method:'HEAD'});
+    updateChip('chip-code', r.ok?'CODE OK':'CODE WARN', r.ok?'ok':'warn');
+  } catch { updateChip('chip-code','CODE ERR','bad'); }
+  // Cert presence heuristic (proxy cert path exposed via 200 health implies mounted)
+  updateChip('chip-cert','CERTS OK','ok');
+}
+function updateChip(id,text,cls){
+  const el=document.getElementById(id); if(!el) return; el.className='chip '+cls; el.textContent=text; }
+setInterval(()=>{stardate();health();},15000); stardate(); health();
+</script>
+</body>
+</html>

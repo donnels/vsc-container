@@ -1,0 +1,85 @@
+/* LCARS Theming */
+:root {
+  --lcars-black:#000000;
+  --lcars-bg:#050509;
+  --lcars-text:#f2f2f2;
+  --lcars-panel:#11151c;
+  --lcars-border:#272d37;
+  --lcars-accent-a:#ff9966; /* orange */
+  --lcars-accent-b:#ffcc66; /* light amber */
+  --lcars-accent-c:#cc6699; /* pink */
+  --lcars-accent-d:#6699ff; /* blue */
+  --lcars-accent-e:#9966ff; /* violet */
+  --lcars-critical:#d64545;
+  --lcars-ok:#2fa866;
+  --lcars-warn:#d2a941;
+}
+
+html,body { margin:0; padding:0; background:var(--lcars-bg); color:var(--lcars-text); font:14px/1.4 "Eurostile","Microgramma", "Segoe UI",Verdana,Arial,sans-serif; letter-spacing:.5px; -webkit-font-smoothing:antialiased; }
+* { box-sizing:border-box; }
+
+/* Horizontal LCARS bars */
+.lcars-bar { position:relative; display:flex; align-items:stretch; gap:18px; padding:14px 24px 14px 8px; overflow:hidden; }
+.lcars-bar.top { padding-top:24px; }
+.lcars-bar.bottom { margin-top:auto; padding-bottom:24px; }
+
+.lcars-bar .segment { position:relative; display:flex; align-items:center; padding:0 28px; font-weight:600; text-transform:uppercase; font-size:18px; letter-spacing:2px; height:64px; border-radius:0 40px 40px 0; background:var(--lcars-accent-c); color:#000; box-shadow:0 0 0 3px var(--lcars-bg), 0 0 0 5px var(--lcars-accent-c); }
+.lcars-bar .segment.title { background:var(--lcars-accent-a); box-shadow:0 0 0 3px var(--lcars-bg),0 0 0 5px var(--lcars-accent-a); width:260px; }
+.lcars-bar .segment.stardate { background:var(--lcars-accent-d); box-shadow:0 0 0 3px var(--lcars-bg),0 0 0 5px var(--lcars-accent-d); flex:1; justify-content:flex-end; }
+.lcars-bar.bottom .segment { background:var(--lcars-accent-e); box-shadow:0 0 0 3px var(--lcars-bg),0 0 0 5px var(--lcars-accent-e); font-size:14px; height:56px; }
+.lcars-bar.bottom .segment:nth-child(2){ background:var(--lcars-accent-b); box-shadow:0 0 0 3px var(--lcars-bg),0 0 0 5px var(--lcars-accent-b); }
+
+/* Layout */
+.lcars-frame { display:flex; flex-direction:column; min-height:100vh; }
+.lcars-grid { display:grid; gap:28px; padding:32px clamp(24px,4vw,64px) 64px clamp(24px,4vw,64px); grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); align-items:start; }
+
+/* Panels */
+.panel { position:relative; padding:20px 20px 28px 20px; background:var(--lcars-panel); border:3px solid var(--lcars-border); border-radius:28px 0 0 28px; min-height:260px; box-shadow:0 0 0 5px var(--lcars-bg),0 0 0 8px var(--lcars-border); }
+.panel:before { content:""; position:absolute; left:-3px; top:-3px; bottom:-3px; width:46px; border-radius:28px 0 0 28px; background:linear-gradient(var(--lcars-accent-a),var(--lcars-accent-a) 33%,var(--lcars-accent-c) 33%,var(--lcars-accent-c) 66%,var(--lcars-accent-d) 66%); mix-blend-mode:normal; }
+.panel h1 { margin:0 0 18px 56px; font-size:22px; font-weight:700; text-transform:uppercase; letter-spacing:3px; color:var(--lcars-accent-b); }
+.panel.navigation:before { background:linear-gradient(var(--lcars-accent-d),var(--lcars-accent-d) 33%,var(--lcars-accent-e) 33%,var(--lcars-accent-e) 66%,var(--lcars-accent-a) 66%); }
+.panel.status:before { background:linear-gradient(var(--lcars-accent-c),var(--lcars-accent-c) 33%,var(--lcars-accent-a) 33%,var(--lcars-accent-a) 66%,var(--lcars-accent-b) 66%); }
+.panel.docs:before { background:linear-gradient(var(--lcars-accent-e),var(--lcars-accent-e) 33%,var(--lcars-accent-d) 33%,var(--lcars-accent-d) 66%,var(--lcars-accent-c) 66%); }
+
+/* Buttons */
+.lcars-button { position:relative; display:block; text-decoration:none; color:#000; font-weight:600; text-transform:uppercase; letter-spacing:1px; background:var(--lcars-accent-d); padding:14px 18px 14px 34px; margin:10px 0; border-radius:0 30px 30px 0; font-size:13px; min-width:200px; box-shadow:0 0 0 3px var(--lcars-bg),0 0 0 5px var(--lcars-accent-d); transition:transform .15s ease, filter .15s ease; }
+.lcars-button:before { content:""; position:absolute; left:10px; top:50%; width:12px; height:12px; border-radius:50%; background:#000; transform:translateY(-50%); box-shadow:0 0 0 2px #000,0 0 0 4px rgba(0,0,0,.4) inset; }
+.lcars-button:hover { filter:brightness(1.1); transform:translateX(4px); }
+.lcars-button:active { filter:brightness(.9); }
+.lcars-button.critical { background:var(--lcars-critical); box-shadow:0 0 0 3px var(--lcars-bg),0 0 0 5px var(--lcars-critical); }
+.lcars-button.critical:hover { filter:brightness(1.15); }
+.doc-buttons { display:flex; flex-wrap:wrap; gap:12px; }
+.doc-buttons .lcars-button { flex:1 1 90px; min-width:120px; }
+
+/* Status chips */
+.status-chips { display:flex; flex-wrap:wrap; gap:10px; margin:8px 0 20px 56px; }
+.chip { position:relative; background:#222; color:#ddd; padding:6px 14px 6px 30px; border-radius:0 22px 22px 0; font-size:12px; letter-spacing:1px; font-weight:600; text-transform:uppercase; box-shadow:0 0 0 3px var(--lcars-bg),0 0 0 5px #222; }
+.chip:before { content:""; position:absolute; left:8px; top:50%; width:10px; height:10px; border-radius:50%; background:#666; transform:translateY(-50%); }
+.chip.ok { background:var(--lcars-ok); color:#000; box-shadow:0 0 0 3px var(--lcars-bg),0 0 0 5px var(--lcars-ok); }
+.chip.ok:before { background:#000; }
+.chip.warn { background:var(--lcars-warn); color:#000; box-shadow:0 0 0 3px var(--lcars-bg),0 0 0 5px var(--lcars-warn); }
+.chip.warn:before { background:#000; }
+.chip.bad { background:var(--lcars-critical); color:#000; box-shadow:0 0 0 3px var(--lcars-bg),0 0 0 5px var(--lcars-critical); }
+.chip.bad:before { background:#000; }
+
+/* Lists */
+ul { list-style:none; margin:0 0 0 56px; padding:0; }
+ul li { padding:6px 0; font-size:13px; border-bottom:1px solid #1f232b; }
+ul li:last-child { border-bottom:none; }
+
+/* Utility */
+@media (max-width:900px){
+  .lcars-bar .segment { font-size:14px; height:54px; }
+  .lcars-bar .segment.title { width:200px; }
+  .lcars-grid { grid-template-columns:1fr; padding:32px 24px 80px 24px; }
+  .panel { border-radius:24px 0 0 24px; }
+  .panel h1 { margin-left:48px; font-size:18px; }
+  .status-chips { margin-left:48px; }
+  ul { margin-left:48px; }
+}
+
+@media (max-width:560px){
+  .lcars-bar { gap:8px; padding:16px 12px; }
+  .lcars-bar .segment { padding:0 18px; }
+  .lcars-bar .segment.title { width:160px; }
+}

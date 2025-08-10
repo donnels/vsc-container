@@ -39,7 +39,7 @@ jobs:
     - name: Install AsciiDoctor and dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y asciidoctor graphviz
+        sudo apt-get install -y asciidoctor graphviz pandoc
         sudo gem install asciidoctor-pdf
         wget -O plantuml.jar https://github.com/plantuml/plantuml/releases/download/v1.2024.0/plantuml-1.2024.0.jar
         sudo cp plantuml.jar /usr/local/bin/
@@ -83,11 +83,20 @@ jobs:
           asciidoctor-pdf "$file" -o "docs/${filename}.pdf"
         done
     
+    - name: Build AsciiDoc files to DOCX
+      run: |
+        find . -name "*.asciidoc" -not -path "./docs/*" | while read file; do
+          echo "Processing $file to DOCX"
+          filename=$(basename "$file" .asciidoc)
+            pandoc "$file" -f asciidoc -t docx -o "docs/${filename}.docx"
+        done
+    
     - name: List generated files
       run: |
         echo "Generated files:"
         echo "HTML: $(ls docs/*.html 2>/dev/null | wc -l) files"
         echo "PDF: $(ls docs/*.pdf 2>/dev/null | wc -l) files"  
+        echo "DOCX: $(ls docs/*.docx 2>/dev/null | wc -l) files"
         echo "PNG: $(find . -name '*.png' -type f 2>/dev/null | wc -l) files"
     
     - name: Commit and push generated files

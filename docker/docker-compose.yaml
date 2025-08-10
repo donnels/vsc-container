@@ -19,13 +19,15 @@ services:
       - ./docker-vsc/.env
     environment:
       - CERT_HOSTNAMES=${CERT_HOSTNAMES:-vscode.vsagcrd.org localhost 127.0.0.1}
+      - VSCODE_CERT_NAME=${VSCODE_CERT_NAME:-vscode}
     volumes:
       - ../:/workspace
       - ../data:/data
       - code-server-config:/home/coder/.config/code-server
       - code-server-data:/home/coder/.local/share/code-server
       - code-server-code:/home/coder/code
-    command: ["/usr/bin/code-server", "/home/coder/code", "--bind-addr", "0.0.0.0:8443", "--auth", "password", "--cert", "/home/coder/.config/code-server/certs/code-server.crt", "--cert-key", "/home/coder/.config/code-server/certs/code-server.key"]
+      - cert-output:/etc/letsencrypt/live:ro
+    command: ["/usr/bin/code-server", "/home/coder/code", "--bind-addr", "0.0.0.0:8443", "--auth", "password", "--cert", "/etc/letsencrypt/live/${VSCODE_CERT_NAME:-vscode}/fullchain.pem", "--cert-key", "/etc/letsencrypt/live/${VSCODE_CERT_NAME:-vscode}/privkey.pem"]
     restart: unless-stopped
     dns:
       - 172.20.0.10
@@ -66,6 +68,7 @@ services:
     ports:
       - "443:443"
       - "80:80"
+      - "8080:8080"
     volumes:
       - cert-output:/etc/nginx/certs:ro
     depends_on:

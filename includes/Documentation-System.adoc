@@ -1,0 +1,101 @@
+== Documentation System
+
+This project uses an automated documentation system powered by GitHub Actions, AsciiDoctor, and PlantUML to maintain comprehensive technical documentation.
+
+=== Architecture Overview
+
+The documentation system automatically converts source files into multiple output formats whenever changes are detected:
+
+image::images/github-actions-workflow.png[Documentation Build Process, 800, 600]
+
+=== Documentation Sources
+
+**AsciiDoc Files** (`*.asciidoc`)::
+- Main project documentation written in AsciiDoc markup language
+- Supports advanced formatting, cross-references, and code highlighting
+- Automatically converted to HTML and PDF formats
+- Supports modular content through include directives
+
+**PlantUML Diagrams** (`*.plantuml`)::
+- Technical diagrams and flowcharts written in PlantUML text format
+- Sequence diagrams for system interactions and workflows
+- Architecture diagrams showing component relationships
+- Automatically converted to PNG images for web display
+
+**Include Files** (`includes/*.adoc`)::
+- Modular content sections for reusability across documents
+- Glossary definitions and appendices
+- Shared content blocks to maintain consistency
+
+=== Build Process
+
+The GitHub Actions workflow (`build-docs.yml`) automatically:
+
+. **Triggers** on changes to `.asciidoc` or `.plantuml` files
+. **Installs Dependencies**:
+  - Java 17 (Temurin distribution) for PlantUML execution
+  - AsciiDoctor and AsciiDoctor-PDF gems for document processing
+  - Graphviz for PlantUML diagram rendering
+  - PlantUML JAR file for diagram generation
+. **Processes Documents**:
+  - Converts each `.asciidoc` file to HTML and PDF in `docs/` directory
+  - Generates PNG images from `.plantuml` files in place
+. **Commits Results**:
+  - Automatically commits generated files with `[skip ci]` to prevent build loops
+  - Updates repository with latest documentation builds
+
+=== Generated Output
+
+**HTML Documentation** (`docs/*.html`)::
+- Web-ready documentation with embedded images and styling
+- Cross-linked navigation and searchable content
+- Responsive design for mobile and desktop viewing
+
+**PDF Documentation** (`docs/*.pdf`)::
+- Print-ready documents with professional formatting
+- Suitable for offline reading and archival purposes
+- Maintains consistent branding and layout
+
+**PNG Diagrams** (`images/*.png`, `**/*.png`)::
+- High-quality images generated from PlantUML source
+- Embedded in HTML documentation and usable standalone
+- Version-controlled alongside source diagrams
+
+=== Content Guidelines
+
+**AsciiDoc Best Practices**::
+- Use semantic markup with proper heading hierarchy
+- Include code blocks with appropriate syntax highlighting: `[source,bash]`, `[source,json]`, etc.
+- Reference diagrams using relative paths: `image::images/diagram.png[]`
+- Use definition lists for structured information
+
+**PlantUML Standards**::
+- Include descriptive titles and footers in diagrams
+- Use consistent styling with `skinparam` declarations
+- Group related interactions with `group` and `box` elements
+- Follow naming conventions for participants and components
+
+**File Organization**::
+- Main documentation in root `.asciidoc` files
+- Diagrams organized in `images/` directory
+- Shared content in `includes/` directory
+- Generated output in `docs/` directory (Git-tracked)
+
+=== Maintenance and Updates
+
+**Automatic Builds**::
+- No manual intervention required for documentation updates
+- Changes to source files trigger automatic regeneration
+- Generated files are committed back to repository automatically
+
+**Local Development**::
+- Install AsciiDoctor locally for preview during development
+- Use PlantUML plugins in editors for diagram preview
+- Test builds locally before pushing to repository
+
+**Version Control**::
+- Source files (`.asciidoc`, `.plantuml`) are primary artifacts
+- Generated files are tracked for easy deployment and viewing
+- Build logs available in GitHub Actions for troubleshooting
+
+This automated system ensures documentation stays current with code changes and provides multiple formats for different use cases, from web browsing to professional PDF reports.

@@ -12,7 +12,7 @@ participant "GitHub Actions" as Actions
 participant "Ubuntu Runner" as Runner
 participant "Build Tools" as Tools
 
-box "Trigger Conditions" #lightblue
+box "Trigger Conditions" #aaf-fff
     note over Developer, Repo: Push to main/develop branches\nChanges to *.asciidoc or *.plantuml files
 end box
 

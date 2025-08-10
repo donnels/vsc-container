@@ -10,7 +10,7 @@ box Private Network #aaf-fff
     actor User
     participant "Cert Generator" as docker.certbot <<container>>
 end box
-box Internet aaf-fff
+box Internet #aaf-fff
     participant "cloudflare DNS" as internet.cloudflare <<service>>
     participant "Let's Encrypt" as internet.letsencrypt <<service>>
 end box

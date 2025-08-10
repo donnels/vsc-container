@@ -1,4 +1,7 @@
 = VSCode Container Project
+:toc: right
+:sectnums:
+:sectnumlevels: 5
 
 A production-ready containerized VS Code server environment with SSL certificate support and reverse proxy architecture for secure remote development.
 
@@ -22,10 +25,10 @@ This architecture provides:
 
 === External Access
 
-All external access flows through the proxy at `your-domain.vsagcrd.org:8443`:
+All external access flows through the proxy at `your-domain.vsagcrd.org` (standard HTTPS port 443):
 
 ----
-Intranet → your-domain.vsagcrd.org:8443 → proxy.vsagcrd.org → vscode.vsagcrd.org
+Intranet → your-domain.vsagcrd.org:443 → proxy.vsagcrd.org → vscode.vsagcrd.org:8443
 ----
 
 == Architectural Decisions
@@ -93,7 +96,7 @@ cd vsc-container/docker
 [source,bash]
 ----
 cp docker-certbot/.env.template docker-certbot/.env
-# Edit docker-certbot/.env with your Cloudflare credentials and vsagcrd.org domain
+# Edit docker-certbot/.env with your Cloudflare credentials and domain configuration
 docker-compose --profile tools run cert-generator
 ----
 
@@ -102,7 +105,15 @@ docker-compose --profile tools run cert-generator
 [source,bash]
 ----
 cp docker-proxy/.env.template docker-proxy/.env
-# Edit docker-proxy/.env with your vsagcrd.org subdomain
+# Edit docker-proxy/.env with your certificate name (should match certbot PROXY_CERT_NAME)
+----
+
+. Configure VS Code service:
++
+[source,bash]
+----
+cp docker-vsc/.env.template docker-vsc/.env
+# Edit docker-vsc/.env with your certificate name (should match certbot VSCODE_CERT_NAME)
 ----
 
 . Start the development environment:
@@ -112,7 +123,7 @@ cp docker-proxy/.env.template docker-proxy/.env
 docker-compose --profile dev up -d
 ----
 
-. Access VS Code at: `https://your-subdomain.vsagcrd.org:8443`
+. Access VS Code at: `https://your-subdomain.vsagcrd.org` (standard HTTPS port 443)
 
 . Start the complete environment:
 +
@@ -121,7 +132,7 @@ docker-compose --profile dev up -d
 docker-compose up
 ----
 
-. Access VS Code at `https://vsagcrd.org`
+. Access VS Code at `https://vsagcrd.org` (standard HTTPS port 443)
 
 == Architecture Overview
 
@@ -146,12 +157,15 @@ image::images/proxy-deployment-sequence.png[Production Architecture Flow, 800, 6
 
 **VS Code Service** (`docker-vsc/`)::
 - Code-server accessible as `vscode.vsagcrd.org` internally
+- Uses dedicated Let's Encrypt certificate (separate from proxy)
 - Pre-installed development extensions (PlantUML, AsciiDoctor)
 - Internal network access only (security isolation)
-- Development tools: Java, Graphviz, mkcert, standard utilities
+- Development tools: Java, Graphviz, standard utilities
 
 **Certificate Generator** (`docker-certbot/`)::
-- Let's Encrypt certificate generation for `vsagcrd.org` via Cloudflare DNS-01 challenge
+- Generates separate Let's Encrypt certificates for proxy and VS Code services
+- Cloudflare DNS-01 challenge for automated domain validation
+- Configurable certificate names and domain sets for each service
 - Automated certificate renewal capabilities
 - On-demand execution via Docker Compose profiles
 - Accessible as `certbot.vsagcrd.org` internally
@@ -186,15 +200,15 @@ docker/
 ├── docker-compose.yaml          # Complete orchestration
 ├── docker-coredns/               # Internal DNS server
 │   ├── Corefile                 # CoreDNS configuration
-│   ├── vsagcrd.org.db          # Internal domain DNS records
-│   └── reverse.db              # Reverse DNS lookup
+│   └── hosts                    # Internal domain host mappings
 ├── docker-proxy/                # Nginx reverse proxy
 │   ├── Dockerfile
-│   ├── nginx.conf               # Production SSL config
+│   ├── nginx.conf               # Production SSL config (legacy)
+│   ├── nginx.conf.template      # Templated SSL config  
 │   └── .env.template
 ├── docker-vsc/                  # VS Code server
 │   ├── Dockerfile
-│   ├── generate_certs.sh        # Internal cert generation
+│   ├── generate_certs.sh        # Extension installation script
 │   ├── extensions.json          # Pre-installed extensions
 │   └── .env.template
 └── docker-certbot/              # Certificate management
@@ -203,6 +217,7 @@ docker/
     └── .env.template
 images/                           # Technical diagrams → PNG
 docs/                            # Generated documentation
+includes/                        # Modular documentation content
 .github/workflows/               # Documentation automation
 ----
 
@@ -235,10 +250,21 @@ cp docker-certbot/.env.template docker-certbot/.env
 +
 [source,properties]
 ----
-DOMAIN=yoursubdomain.vsagcrd.org
-DOMAINS=yoursubdomain.vsagcrd.org,*.vsagcrd.org
+DOMAIN=vsagcrd.org
 CLOUDFLARE_API_TOKEN=your_api_token_here
 CLOUDFLARE_ZONE_ID=your_zone_id_here
+
+# Proxy certificate (for external access)
+PROXY_DOMAINS=vsagcrd.org,www.vsagcrd.org
+PROXY_CERT_NAME=proxy
+
+# VS Code certificate (for internal access)
+VSCODE_DOMAINS=vscode.vsagcrd.org,code.vsagcrd.org
+VSCODE_CERT_NAME=vscode
+
+# Generate both certificates (set to false to skip)
+GENERATE_PROXY_CERT=true
+GENERATE_VSCODE_CERT=true
 ----
 
 . Generate certificates:
@@ -289,40 +315,21 @@ VS Code service configuration via environment variables:
 
 [source,properties]
 ----
-# Certificate hostnames (for internal certificates)
-CERT_HOSTNAMES=localhost 127.0.0.1
+# VS Code certificate name (must match certbot VSCODE_CERT_NAME)
+VSCODE_CERT_NAME=vscode
 
-# Additional VS Code configuration can be added here
+# VS Code authentication settings
+CODE_SERVER_PASSWORD_HASH=CHANGE_THIS_HASH
+CODE_SERVER_AUTH_MESSAGE=Virtual Space Research
 ----
 
-== Documentation System
+Proxy service configuration via environment variables:
 
-Automated documentation building powered by GitHub Actions:
-
-image::images/github-actions-workflow.png[Documentation Build Process, 800, 600]
-
-=== Documentation Architecture
-
-**Source Files**::
-- `README.asciidoc`: Main project documentation (this file)
-- `*.plantuml`: Technical diagrams and flowcharts
-- `.adoc`, `.puml`: Include files for modular content
-
-**Generated Output**::
-- HTML and PDF documentation in `docs/`
-- PNG diagrams generated alongside source files
-- Automated builds on every commit
-
-=== Build Process
-
-The GitHub Actions workflow automatically:
-
-. Triggers on changes to `.asciidoc` or `.plantuml` files
-. Installs AsciiDoctor, PlantUML, Java, and Graphviz
-. Converts documentation to HTML and PDF formats
-. Converts diagrams to PNG images
-. Commits generated files back to repository
-. Uses `[skip ci]` to prevent build loops
+[source,properties]
+----
+# Proxy certificate name (must match certbot PROXY_CERT_NAME)
+PROXY_CERT_NAME=proxy
+----
 
 == Deployment
 
@@ -384,7 +391,7 @@ Monitor certificate expiration:
 [source,bash]
 ----
 # Check certificate details
-openssl x509 -in <(docker-compose exec proxy cat /etc/nginx/certs/fullchain.pem) -text -noout
+openssl x509 -in <(docker-compose exec proxy cat /etc/nginx/certs/proxy/fullchain.pem) -text -noout
 ----
 
 Automate renewal with cron:
@@ -415,7 +422,7 @@ docker-compose --profile tools run cert-generator
 docker-compose exec proxy nginx -t
 
 # Check internal connectivity
-docker-compose exec proxy curl -k https://code-server:8443
+docker-compose exec proxy curl -k https://vscode.vsagcrd.org:8443
 ----
 
 == Extension and Customization
@@ -461,7 +468,14 @@ Edit `docker-proxy/nginx.conf` for:
 All documentation and diagrams are automatically built and updated via GitHub Actions.
 
 [appendix]
-== Glossary
+include::includes/Documentation-System.adoc[]
+
+[appendix]
+include::includes/Include-Glossary.adoc[]
+
+---
+
+*This project provides a production-ready, secure development environment following modern containerization and security best practices.*
 
 include::includes/Include-Glossary.adoc[]
 
