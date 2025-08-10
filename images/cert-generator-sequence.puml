@@ -1,0 +1,29 @@
+@startuml
+title Certificate Generation Sequence Diagram
+footer (C)2025 Sean Donnellan
+
+skinparam shadowing 1
+skinparam BackgroundColor #fff/aaf
+skinparam participantBackgroundColor #fff/aaf
+
+box Private Network #aaf-fff
+    actor User
+    participant "Cert Generator" as docker.certbot <<container>>
+end box
+box Internet aaf-fff
+    participant "cloudflare DNS" as internet.cloudflare <<service>>
+    participant "Let's Encrypt" as internet.letsencrypt <<service>>
+end box
+
+User -> Registrar: Register domain
+User -> internet.cloudflare: Obtain API token
+User -> User: Write domain name, API token, Zone ID (optional) to config file
+User -> docker.certbot: Start certbot with config file
+docker.certbot -> internet.letsencrypt: Request challenge
+internet.letsencrypt -> docker.certbot: Provide DNS-01 challenge
+docker.certbot -> internet.cloudflare: Create DNS TXT record (with challenge value)
+internet.cloudflare -> docker.certbot: Confirm DNS record
+docker.certbot -> internet.letsencrypt: Validate challenge
+internet.letsencrypt -> docker.certbot: Issue certificate
+docker.certbot -> User: Generate certificates
+@enduml
