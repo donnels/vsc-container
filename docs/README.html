@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 2.0.20">
-<title>VSCode Container Service</title>
+<title>VSCode Container Project</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /*! Asciidoctor default stylesheet | MIT License | https://asciidoctor.org */
@@ -435,159 +435,1046 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </head>
 <body class="article">
 <div id="header">
-<h1>VSCode Container Service</h1>
+<h1>VSCode Container Project</h1>
 </div>
 <div id="content">
 <div id="preamble">
 <div class="sectionbody">
 <div class="paragraph">
-<p>This directory contains the VS Code server container configuration for secure remote development.</p>
+<p>A production-ready containerized VS Code server environment with SSL certificate support and reverse proxy architecture for secure remote development.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/config-overview.png" alt="Project Structure" width="800" height="600">
+</div>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_contents">Contents</h2>
+<h2 id="_service_discovery_and_networking">Service Discovery and Networking</h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>The system uses CoreDNS for internal service discovery within the <code>vsagcrd.org</code> domain:</p>
+</div>
 <div class="ulist">
 <ul>
 <li>
-<p><code>Dockerfile</code>: Builds the code-server image with SSL support and development tools</p>
+<p><strong>proxy.vsagcrd.org</strong> (172.20.0.11) - Nginx reverse proxy with SSL termination</p>
 </li>
 <li>
-<p><code>generate_certs.sh</code>: Script to generate self-signed SSL certificates using mkcert or OpenSSL</p>
+<p><strong>vscode.vsagcrd.org</strong> (172.20.0.12) - VS Code Server application</p>
 </li>
 <li>
-<p><code>.env.template</code>: Example environment file for configuration variables</p>
+<p><strong>coredns.vsagcrd.org</strong> (172.20.0.10) - Internal DNS resolver</p>
 </li>
 <li>
-<p><code>extensions.json</code>: Recommended VS Code extensions (PlantUML, AsciiDoctor)</p>
-</li>
-<li>
-<p><code>nginx.conf</code>: Nginx configuration (currently unused, SSL handled directly by code-server)</p>
+<p><strong>certbot.vsagcrd.org</strong> (172.20.0.13) - Certificate management (run-once)</p>
 </li>
 </ul>
+</div>
+<div class="paragraph">
+<p>This architecture provides:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Consistent internal hostname resolution</p>
+</li>
+<li>
+<p>Simplified container communication</p>
+</li>
+<li>
+<p>Production-ready network segregation</p>
+</li>
+<li>
+<p>Automatic service discovery</p>
+</li>
+</ul>
+</div>
+<div class="sect2">
+<h3 id="_external_access">External Access</h3>
+<div class="paragraph">
+<p>All external access flows through the proxy at <code>your-domain.vsagcrd.org:8443</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Intranet → your-domain.vsagcrd.org:8443 → proxy.vsagcrd.org → vscode.vsagcrd.org</pre>
+</div>
+</div>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_how_it_works">How it Works</h2>
+<h2 id="_architectural_decisions">Architectural Decisions</h2>
 <div class="sectionbody">
+<div class="sect2">
+<h3 id="_proxy_first_architecture">Proxy-First Architecture</h3>
 <div class="paragraph">
-<p>The VS Code container is designed to run as part of the main docker-compose setup:</p>
+<p>This project exclusively uses a reverse proxy architecture for the following reasons:</p>
 </div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><strong>DNS Simplicity</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>No need to modify local DNS or hosts files</p>
+</li>
+<li>
+<p>Works seamlessly with public domains</p>
+</li>
+<li>
+<p>Avoids port-specific access patterns that confuse users</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><strong>Production Readiness</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Standard HTTPS on port 443 (not custom ports like 8443)</p>
+</li>
+<li>
+<p>Proper SSL termination at the edge</p>
+</li>
+<li>
+<p>HTTP to HTTPS automatic redirection</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><strong>Security Benefits</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>SSL/TLS handled by dedicated proxy layer</p>
+</li>
+<li>
+<p>Security headers automatically applied</p>
+</li>
+<li>
+<p>No direct container exposure to public internet</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><strong>Operational Simplicity</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Single entry point for all traffic</p>
+</li>
+<li>
+<p>Centralized certificate management</p>
+</li>
+<li>
+<p>Standard web server patterns that ops teams understand</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><strong>Future Extensibility</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Load balancing capabilities built-in</p>
+</li>
+<li>
+<p>Multiple backend support ready</p>
+</li>
+<li>
+<p>Monitoring and logging integration points</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_dns_architecture_coredns_with_dynamic_local_detection">DNS Architecture: CoreDNS with Dynamic Local Detection</h3>
+<div class="paragraph">
+<p>The project uses CoreDNS for internal service discovery with intelligent local DNS detection:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><strong>Local Network Awareness</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Automatically detects and uses local DNS servers (Fritz Box when home, mobile DNS when traveling)</p>
+</li>
+<li>
+<p>No hardcoded DNS servers (avoiding Google DNS, respecting privacy)</p>
+</li>
+<li>
+<p>Seamless portability across different network environments</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><strong>Internal Service Discovery</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Simple <code>/etc/hosts</code> format for internal services (.vsagcrd.org domain)</p>
+</li>
+<li>
+<p>Automatic forward and reverse DNS generation</p>
+</li>
+<li>
+<p>Easy maintenance with single hosts file</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><strong>Network Isolation Benefits</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Internal container communication via DNS names, not IP addresses</p>
+</li>
+<li>
+<p>Clear separation between internal services and external DNS</p>
+</li>
+<li>
+<p>Reduced configuration complexity for users</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_quick_start">Quick Start</h2>
+<div class="sectionbody">
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>From the <code>docker/</code> directory, run:</p>
+<p>Clone this repository:</p>
 <div class="listingblock">
 <div class="content">
-<pre>docker-compose up</pre>
+<pre class="highlight"><code class="language-bash" data-lang="bash">git clone https://github.com/donnels/vsc-container.git
+cd vsc-container/docker</code></pre>
 </div>
 </div>
 </li>
 <li>
-<p>The container starts and automatically:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>Generates SSL certificates for secure HTTPS access</p>
-</li>
-<li>
-<p>Installs recommended extensions (PlantUML, AsciiDoctor)</p>
-</li>
-<li>
-<p>Starts code-server on port 8443 with SSL enabled</p>
-</li>
-</ul>
+<p>Generate Let&#8217;s Encrypt certificates:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-bash" data-lang="bash">cp docker-certbot/.env.template docker-certbot/.env
+# Edit docker-certbot/.env with your Cloudflare credentials and vsagcrd.org domain
+docker-compose --profile tools run cert-generator</code></pre>
+</div>
 </div>
 </li>
 <li>
-<p>Access your VS Code environment at <code><a href="https://localhost:8443" class="bare">https://localhost:8443</a></code></p>
+<p>Configure proxy environment:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-bash" data-lang="bash">cp docker-proxy/.env.template docker-proxy/.env
+# Edit docker-proxy/.env with your vsagcrd.org subdomain</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Start the development environment:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-bash" data-lang="bash">docker-compose --profile dev up -d</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Access VS Code at: <code><a href="https://your-subdomain.vsagcrd.org:8443" class="bare">https://your-subdomain.vsagcrd.org:8443</a></code></p>
+</li>
+<li>
+<p>Start the complete environment:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-bash" data-lang="bash">docker-compose up</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Access VS Code at <code><a href="https://vsagcrd.org" class="bare">https://vsagcrd.org</a></code></p>
 </li>
 </ol>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_certificate_generation">Certificate Generation</h2>
+<h2 id="_architecture_overview">Architecture Overview</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>The <code>generate_certs.sh</code> script handles SSL certificate creation:</p>
+<p>The system uses a three-tier architecture designed for production deployment:</p>
 </div>
+<div class="imageblock">
+<div class="content">
+<img src="images/proxy-deployment-sequence.png" alt="Production Architecture Flow" width="800" height="600">
+</div>
+</div>
+<div class="sect2">
+<h3 id="_service_components">Service Components</h3>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><strong>CoreDNS Service</strong> (<code>docker-coredns/</code>)</dt>
+<dd>
 <div class="ulist">
 <ul>
 <li>
-<p><strong>Preferred</strong>: Uses <code>mkcert</code> for locally trusted certificates</p>
+<p>Internal DNS resolution for <code>.vsagcrd.org</code> domain</p>
 </li>
 <li>
-<p><strong>Fallback</strong>: Uses OpenSSL for self-signed certificates</p>
+<p>Service discovery for container-to-container communication</p>
 </li>
 <li>
-<p>Supports multiple hostnames via <code>CERT_HOSTNAMES</code> environment variable</p>
+<p>Static IP assignment and hostname resolution</p>
+</li>
+<li>
+<p>Forwards external queries to public DNS servers</p>
 </li>
 </ul>
+</div>
+</dd>
+<dt class="hdlist1"><strong>Nginx Reverse Proxy</strong> (<code>docker-proxy/</code>)</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>SSL termination with Let&#8217;s Encrypt certificates for <code>vsagcrd.org</code></p>
+</li>
+<li>
+<p>HTTP to HTTPS redirection</p>
+</li>
+<li>
+<p>Security headers and modern TLS configuration</p>
+</li>
+<li>
+<p>WebSocket support for VS Code real-time features</p>
+</li>
+<li>
+<p>Standard ports: 80 (HTTP redirect) and 443 (HTTPS)</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><strong>VS Code Service</strong> (<code>docker-vsc/</code>)</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Code-server accessible as <code>vscode.vsagcrd.org</code> internally</p>
+</li>
+<li>
+<p>Pre-installed development extensions (PlantUML, AsciiDoctor)</p>
+</li>
+<li>
+<p>Internal network access only (security isolation)</p>
+</li>
+<li>
+<p>Development tools: Java, Graphviz, mkcert, standard utilities</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><strong>Certificate Generator</strong> (<code>docker-certbot/</code>)</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Let&#8217;s Encrypt certificate generation for <code>vsagcrd.org</code> via Cloudflare DNS-01 challenge</p>
+</li>
+<li>
+<p>Automated certificate renewal capabilities</p>
+</li>
+<li>
+<p>On-demand execution via Docker Compose profiles</p>
+</li>
+<li>
+<p>Accessible as <code>certbot.vsagcrd.org</code> internally</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_network_architecture">Network Architecture</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-text" data-lang="text">Internet → Nginx Proxy (443/80) → CoreDNS (172.20.0.10) → VS Code Container (vscode.vsagcrd.org:8443)
+                ↓                           ↓
+          Let's Encrypt Certs      Internal DNS Resolution
+              (Volume)              (.vsagcrd.org domain)</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><strong>Service Discovery</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>CoreDNS provides internal DNS resolution for <code>.vsagcrd.org</code> domain</p>
+</li>
+<li>
+<p>Each service has a static IP and hostname (e.g., <code>vscode.vsagcrd.org</code>)</p>
+</li>
+<li>
+<p>Container-to-container communication uses domain names, not IP addresses</p>
+</li>
+<li>
+<p>External DNS queries forwarded to public DNS servers (8.8.8.8, 1.1.1.1)</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><strong>Security Boundaries</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Public internet only reaches the proxy service</p>
+</li>
+<li>
+<p>All internal services isolated on private network (172.20.0.0/16)</p>
+</li>
+<li>
+<p>Certificate volume shared read-only with proxy</p>
+</li>
+<li>
+<p>DNS resolution controlled by internal CoreDNS server</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_directory_structure">Directory Structure</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-text" data-lang="text">docker/
+├── docker-compose.yaml          # Complete orchestration
+├── docker-coredns/               # Internal DNS server
+│   ├── Corefile                 # CoreDNS configuration
+│   ├── vsagcrd.org.db          # Internal domain DNS records
+│   └── reverse.db              # Reverse DNS lookup
+├── docker-proxy/                # Nginx reverse proxy
+│   ├── Dockerfile
+│   ├── nginx.conf               # Production SSL config
+│   └── .env.template
+├── docker-vsc/                  # VS Code server
+│   ├── Dockerfile
+│   ├── generate_certs.sh        # Internal cert generation
+│   ├── extensions.json          # Pre-installed extensions
+│   └── .env.template
+└── docker-certbot/              # Certificate management
+    ├── Dockerfile
+    ├── entrypoint.sh            # Let's Encrypt automation
+    └── .env.template
+images/                           # Technical diagrams → PNG
+docs/                            # Generated documentation
+.github/workflows/               # Documentation automation</code></pre>
+</div>
+</div>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_development_tools_included">Development Tools Included</h2>
-<div class="sectionbody">
-<div class="ulist">
-<ul>
-<li>
-<p><strong>PlantUML</strong>: For creating diagrams (with Java runtime and Graphviz)</p>
-</li>
-<li>
-<p><strong>AsciiDoctor</strong>: For documentation authoring</p>
-</li>
-<li>
-<p><strong>mkcert</strong>: For generating trusted local certificates</p>
-</li>
-<li>
-<p><strong>Standard development tools</strong>: curl, wget, openssl</p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_configuration">Configuration</h2>
+<h2 id="_ssl_certificate_management">SSL Certificate Management</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Copy <code>.env.template</code> to <code>.env</code> and customize:</p>
+<p>The system exclusively uses Let&#8217;s Encrypt certificates for production-grade SSL:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/cert-generator-sequence.png" alt="Certificate Generation Process" width="800" height="600">
+</div>
+</div>
+<div class="sect2">
+<h3 id="_certificate_generation_process">Certificate Generation Process</h3>
+<div class="sect3">
+<h4 id="_prerequisites">Prerequisites</h4>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Register your domain with a registrar</p>
+</li>
+<li>
+<p>Configure domain DNS through Cloudflare</p>
+</li>
+<li>
+<p>Create Cloudflare API token with DNS edit permissions: <a href="https://dash.cloudflare.com/profile/api-tokens" class="bare">https://dash.cloudflare.com/profile/api-tokens</a></p>
+</li>
+<li>
+<p>Obtain Cloudflare Zone ID for your domain</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_certificate_generation_steps">Certificate Generation Steps</h4>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Configure certificate generator:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-bash" data-lang="bash">cd docker
+cp docker-certbot/.env.template docker-certbot/.env</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Edit <code>docker-certbot/.env</code> with your credentials:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-properties" data-lang="properties">DOMAIN=yoursubdomain.vsagcrd.org
+DOMAINS=yoursubdomain.vsagcrd.org,*.vsagcrd.org
+CLOUDFLARE_API_TOKEN=your_api_token_here
+CLOUDFLARE_ZONE_ID=your_zone_id_here</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Generate certificates:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-bash" data-lang="bash">docker-compose --profile tools run cert-generator</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Certificates are automatically available to the proxy via Docker volume</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_certificate_renewal">Certificate Renewal</h4>
+<div class="paragraph">
+<p>Certificates can be renewed by re-running the certificate generator:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>CERT_HOSTNAMES=localhost 127.0.0.1 steamdeck.fritz.box</pre>
+<pre class="highlight"><code class="language-bash" data-lang="bash">docker-compose --profile tools run cert-generator
+docker-compose restart proxy</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For automated renewal, set up a cron job or systemd timer to run the generation command.</p>
+</div>
 </div>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_security">Security</h2>
+<h2 id="_development_environment">Development Environment</h2>
 <div class="sectionbody">
+<div class="sect2">
+<h3 id="_included_development_tools">Included Development Tools</h3>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><strong>Pre-installed Extensions</strong></dt>
+<dd>
 <div class="ulist">
 <ul>
 <li>
-<p>Code-server requires password authentication</p>
+<p>PlantUML: Technical diagram creation with Java runtime and Graphviz</p>
 </li>
 <li>
-<p>All traffic is encrypted via HTTPS</p>
-</li>
-<li>
-<p>Certificates are automatically generated and managed</p>
-</li>
-<li>
-<p>Container runs as non-root user (<code>coder</code>)</p>
+<p>AsciiDoctor: Technical documentation authoring and preview</p>
 </li>
 </ul>
+</div>
+</dd>
+<dt class="hdlist1"><strong>Development Stack</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>VS Code Server with full extension support</p>
+</li>
+<li>
+<p>Git for version control</p>
+</li>
+<li>
+<p>Node.js development tools</p>
+</li>
+<li>
+<p>Java 17 runtime for PlantUML</p>
+</li>
+<li>
+<p>Standard Unix utilities (curl, wget, openssl)</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><strong>Security Features</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Password-protected access</p>
+</li>
+<li>
+<p>HTTPS-only communication</p>
+</li>
+<li>
+<p>Internal network isolation</p>
+</li>
+<li>
+<p>Non-root container execution</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_container_configuration">Container Configuration</h3>
+<div class="paragraph">
+<p>VS Code service configuration via environment variables:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-properties" data-lang="properties"># Certificate hostnames (for internal certificates)
+CERT_HOSTNAMES=localhost 127.0.0.1
+
+# Additional VS Code configuration can be added here</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_documentation_system">Documentation System</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Automated documentation building powered by GitHub Actions:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/github-actions-workflow.png" alt="Documentation Build Process" width="800" height="600">
+</div>
+</div>
+<div class="sect2">
+<h3 id="_documentation_architecture">Documentation Architecture</h3>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><strong>Source Files</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>README.asciidoc</code>: Main project documentation (this file)</p>
+</li>
+<li>
+<p><code>*.plantuml</code>: Technical diagrams and flowcharts</p>
+</li>
+<li>
+<p><code>.adoc</code>, <code>.puml</code>: Include files for modular content</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><strong>Generated Output</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>HTML and PDF documentation in <code>docs/</code></p>
+</li>
+<li>
+<p>PNG diagrams generated alongside source files</p>
+</li>
+<li>
+<p>Automated builds on every commit</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_build_process">Build Process</h3>
+<div class="paragraph">
+<p>The GitHub Actions workflow automatically:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Triggers on changes to <code>.asciidoc</code> or <code>.plantuml</code> files</p>
+</li>
+<li>
+<p>Installs AsciiDoctor, PlantUML, Java, and Graphviz</p>
+</li>
+<li>
+<p>Converts documentation to HTML and PDF formats</p>
+</li>
+<li>
+<p>Converts diagrams to PNG images</p>
+</li>
+<li>
+<p>Commits generated files back to repository</p>
+</li>
+<li>
+<p>Uses <code>[skip ci]</code> to prevent build loops</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_deployment">Deployment</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_single_deployment_model">Single Deployment Model</h3>
+<div class="paragraph">
+<p>The system uses one standardized deployment approach:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><strong>Certificate Generation</strong>: Use Let&#8217;s Encrypt with DNS validation</p>
+</li>
+<li>
+<p><strong>Proxy Deployment</strong>: Nginx handles SSL termination and routing</p>
+</li>
+<li>
+<p><strong>Standard Ports</strong>: HTTP (80) redirects to HTTPS (443)</p>
+</li>
+<li>
+<p><strong>Domain-Based</strong>: Requires proper domain configuration</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_deployment_steps">Deployment Steps</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Configure DNS to point your domain to the deployment server</p>
+</li>
+<li>
+<p>Generate certificates using the certificate generator</p>
+</li>
+<li>
+<p>Start all services with docker-compose</p>
+</li>
+<li>
+<p>Access via standard HTTPS URL</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_production_considerations">Production Considerations</h3>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><strong>Domain Requirements</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Must have a registered domain name</p>
+</li>
+<li>
+<p>Domain must be configured in Cloudflare DNS</p>
+</li>
+<li>
+<p>DNS must resolve to the deployment server&#8217;s public IP</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><strong>Server Requirements</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Docker and Docker Compose installed</p>
+</li>
+<li>
+<p>Ports 80 and 443 accessible from internet</p>
+</li>
+<li>
+<p>Sufficient resources for development workloads</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><strong>Security Considerations</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Automatic security headers via Nginx</p>
+</li>
+<li>
+<p>Modern TLS configuration (TLS 1.2+)</p>
+</li>
+<li>
+<p>HTTP Strict Transport Security (HSTS)</p>
+</li>
+<li>
+<p>No direct container exposure to internet</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_operations_and_maintenance">Operations and Maintenance</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_monitoring_and_logs">Monitoring and Logs</h3>
+<div class="paragraph">
+<p>Access logs for troubleshooting:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-bash" data-lang="bash"># All services
+docker-compose logs
+
+# Specific services
+docker-compose logs proxy
+docker-compose logs code-server
+docker-compose --profile tools logs cert-generator</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_certificate_management">Certificate Management</h3>
+<div class="paragraph">
+<p>Monitor certificate expiration:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-bash" data-lang="bash"># Check certificate details
+openssl x509 -in &lt;(docker-compose exec proxy cat /etc/nginx/certs/fullchain.pem) -text -noout</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Automate renewal with cron:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-bash" data-lang="bash"># Add to crontab for monthly renewal
+0 0 1 * * cd /path/to/project/docker &amp;&amp; docker-compose --profile tools run cert-generator &amp;&amp; docker-compose restart proxy</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_troubleshooting">Troubleshooting</h3>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><strong>Common Issues</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Certificate Generation Fails</strong>: Verify Cloudflare API token permissions and DNS configuration</p>
+</li>
+<li>
+<p><strong>Proxy Won&#8217;t Start</strong>: Check certificate files exist in volume</p>
+</li>
+<li>
+<p><strong>Access Denied</strong>: Verify domain DNS points to correct server</p>
+</li>
+<li>
+<p><strong>WebSocket Issues</strong>: Ensure proxy configuration includes WebSocket support</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><strong>Diagnostic Commands</strong></dt>
+</dl>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-bash" data-lang="bash"># Test certificate generation
+docker-compose --profile tools run cert-generator
+
+# Verify proxy configuration
+docker-compose exec proxy nginx -t
+
+# Check internal connectivity
+docker-compose exec proxy curl -k https://code-server:8443</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_extension_and_customization">Extension and Customization</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_adding_custom_extensions">Adding Custom Extensions</h3>
+<div class="paragraph">
+<p>Modify <code>docker-vsc/extensions.json</code> and rebuild:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "recommendations": [
+    "jebbs.plantuml",
+    "asciidoctor.asciidoctor-vscode",
+    "your.custom.extension"
+  ]
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_custom_nginx_configuration">Custom Nginx Configuration</h3>
+<div class="paragraph">
+<p>Edit <code>docker-proxy/nginx.conf</code> for:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Custom security headers</p>
+</li>
+<li>
+<p>Additional upstream services</p>
+</li>
+<li>
+<p>Rate limiting</p>
+</li>
+<li>
+<p>Custom routing rules</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_documentation_extensions">Documentation Extensions</h3>
+<div class="ulist">
+<ul>
+<li>
+<p>Add <code>.asciidoc</code> files anywhere for automatic building</p>
+</li>
+<li>
+<p>Create <code>.plantuml</code> files for automatic diagram generation</p>
+</li>
+<li>
+<p>Extend GitHub Actions workflow for additional build steps</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_contributing">Contributing</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Fork the repository</p>
+</li>
+<li>
+<p>Create feature branch: <code>git checkout -b feature/enhancement</code></p>
+</li>
+<li>
+<p>Test changes with full deployment</p>
+</li>
+<li>
+<p>Ensure documentation builds correctly</p>
+</li>
+<li>
+<p>Submit pull request with architectural justification</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>All documentation and diagrams are automatically built and updated via GitHub Actions.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_glossary">Appendix A: Glossary</h2>
+<div class="sectionbody">
+<div class="dlist">
+<dl>
+<dt class="hdlist1">AsciiDoctor</dt>
+<dd>
+<p>A fast text processor and publishing toolchain for converting AsciiDoc content to HTML5, DocBook, PDF, and other formats. Used in this project for documentation generation and technical writing with live preview capabilities.</p>
+</dd>
+<dt class="hdlist1">Cloudflare</dt>
+<dd>
+<p>A content delivery network and DNS service provider that offers domain management, security, and performance services. Used in this project for DNS management and API-based DNS-01 challenge validation for Let&#8217;s Encrypt certificates.</p>
+</dd>
+<dt class="hdlist1">CoreDNS</dt>
+<dd>
+<p>A DNS server written in Go that chains plugins to provide flexible DNS services. Used in this project for internal service discovery within the vsagcrd.org domain, providing hostname resolution for container-to-container communication.</p>
+</dd>
+<dt class="hdlist1">DNS-01 Challenge</dt>
+<dd>
+<p>A Let&#8217;s Encrypt ACME challenge method that validates domain ownership by requiring the client to create a specific DNS TXT record. Used with Cloudflare API for automated certificate generation without requiring the server to be publicly accessible.</p>
+</dd>
+<dt class="hdlist1">Let&#8217;s Encrypt</dt>
+<dd>
+<p>A free, automated certificate authority that provides SSL/TLS certificates through the ACME protocol. Used in this project to generate production-grade SSL certificates for secure HTTPS communication.</p>
+</dd>
+<dt class="hdlist1">PlantUML</dt>
+<dd>
+<p>A tool for creating UML diagrams from plain text descriptions. Used in this project for generating technical architecture diagrams, sequence diagrams, and system documentation with Java runtime and Graphviz support.</p>
+</dd>
+<dt class="hdlist1">Reverse Proxy</dt>
+<dd>
+<p>A server that sits between clients and backend servers, forwarding client requests to backend servers and returning responses back to clients. In this project, Nginx serves as a reverse proxy providing SSL termination, security headers, and routing to the VS Code service.</p>
+</dd>
+<dt class="hdlist1">SSL Termination</dt>
+<dd>
+<p>The process of decrypting SSL/TLS traffic at a proxy server before forwarding unencrypted traffic to backend services. Implemented in this project at the Nginx proxy layer for centralized certificate management and security.</p>
+</dd>
+<dt class="hdlist1">Vsagcrd</dt>
+<dd>
+<p>Virtual Space and Global Communications Research Department - Place holder company created By Sean Donnelan as a hanger for projects like this one.</p>
+</dd>
+<dt class="hdlist1">code-server</dt>
+<dd>
+<p>An open-source implementation of Visual Studio Code that runs on a remote server and is accessible through a web browser. Provides the full VS Code experience including extensions, integrated terminal, and debugging capabilities.</p>
+</dd>
+<dt class="hdlist1">mkcert</dt>
+<dd>
+<p>A simple tool for making locally trusted development certificates. Used as the preferred method for generating internal SSL certificates for code-server when available, falling back to OpenSSL for self-signed certificates.</p>
+</dd>
+</dl>
 </div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-08-10 16:29:51 UTC
+Last updated 2025-08-10 17:10:18 UTC
 </div>
 </div>
 </body>
