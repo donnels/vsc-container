@@ -1,0 +1,60 @@
+@startuml github-actions-workflow
+title GitHub Actions Documentation Build Workflow
+footer (C)2025 Sean Donnellan
+
+skinparam shadowing 1
+skinparam BackgroundColor #fff/aaf
+skinparam participantBackgroundColor #fff/aaf
+
+actor Developer
+participant "GitHub Repository" as Repo
+participant "GitHub Actions" as Actions
+participant "Ubuntu Runner" as Runner
+participant "Build Tools" as Tools
+
+box "Trigger Conditions" #lightblue
+    note over Developer, Repo: Push to main/develop branches\nChanges to *.asciidoc or *.plantuml files
+end box
+
+Developer -> Repo: Push changes to .asciidoc or .plantuml files
+Repo -> Actions: Trigger build-docs workflow
+Actions -> Runner: Start Ubuntu container
+
+group Setup Phase
+    Runner -> Tools: Setup Java 17 (Temurin)
+    Runner -> Tools: Install asciidoctor
+    Runner -> Tools: Install asciidoctor-pdf gem
+    Runner -> Tools: Install graphviz
+    Runner -> Tools: Download PlantUML JAR
+end
+
+group Build Phase
+    Runner -> Runner: Create docs/ directory
+    
+    Runner -> Tools: Find all *.asciidoc files
+    loop For each .asciidoc file
+        Tools -> Tools: asciidoctor file.asciidoc → docs/file.html
+        Tools -> Tools: asciidoctor-pdf file.asciidoc → docs/file.pdf
+    end
+    
+    Runner -> Tools: Find all *.plantuml files
+    loop For each .plantuml file
+        Tools -> Tools: java -jar plantuml.jar file.plantuml → file.png
+        note right: PNG saved in same directory as source
+    end
+end
+
+group Commit Phase
+    Runner -> Runner: List generated files
+    Runner -> Repo: git add docs/ images/*.png **/*.png
+    alt Changes detected
+        Runner -> Repo: git commit -m "Auto-generated docs [skip ci]"
+        Runner -> Repo: git push
+    else No changes
+        Runner -> Actions: Skip commit
+    end
+end
+
+Actions -> Developer: Workflow complete
+note over Developer: Generated files available:\n- docs/*.html\n- docs/*.pdf\n- images/*.png
+@enduml

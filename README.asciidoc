@@ -1,6 +1,63 @@
 = VSCode Container Project
 
-This project provides a containerized VS Code server environment with SSL certificate support for secure remote development.
+A production-ready containerized VS Code server environment with SSL certificate support and reverse proxy architecture for secure remote development.
+
+image::images/config-overview.png[Project Structure, 800, 600]
+
+== Service Discovery and Networking
+
+The system uses CoreDNS for internal service discovery within the `vsagcrd.org` domain:
+
+* *proxy.vsagcrd.org* (172.20.0.11) - Nginx reverse proxy with SSL termination
+* *vscode.vsagcrd.org* (172.20.0.12) - VS Code Server application
+* *coredns.vsagcrd.org* (172.20.0.10) - Internal DNS resolver
+* *certbot.vsagcrd.org* (172.20.0.13) - Certificate management (run-once)
+
+This architecture provides:
+
+* Consistent internal hostname resolution
+* Simplified container communication
+* Production-ready network segregation
+* Automatic service discovery
+
+=== External Access
+
+All external access flows through the proxy at `your-domain.vsagcrd.org:8443`:
+
+----
+Internet → your-domain.vsagcrd.org:8443 → proxy.vsagcrd.org → vscode.vsagcrd.org
+----
+
+== Architectural Decisions
+
+=== Proxy-First Architecture
+
+This project exclusively uses a reverse proxy architecture for the following reasons:
+
+**DNS Simplicity**::
+- No need to modify local DNS or hosts files
+- Works seamlessly with public domains
+- Avoids port-specific access patterns that confuse users
+
+**Production Readiness**::
+- Standard HTTPS on port 443 (not custom ports like 8443)
+- Proper SSL termination at the edge
+- HTTP to HTTPS automatic redirection
+
+**Security Benefits**::
+- SSL/TLS handled by dedicated proxy layer
+- Security headers automatically applied
+- No direct container exposure to public internet
+
+**Operational Simplicity**::
+- Single entry point for all traffic
+- Centralized certificate management
+- Standard web server patterns that ops teams understand
+
+**Future Extensibility**::
+- Load balancing capabilities built-in
+- Multiple backend support ready
+- Monitoring and logging integration points
 
 == Quick Start
 
@@ -8,39 +65,152 @@ This project provides a containerized VS Code server environment with SSL certif
 +
 ----
 git clone https://github.com/donnels/vsc-container.git
-cd vsc-container
+cd vsc-container/docker
 ----
 
-. Navigate to the docker directory:
+. Generate Let's Encrypt certificates:
 +
 ----
-cd docker
+cp docker-certbot/.env.template docker-certbot/.env
+# Edit docker-certbot/.env with your Cloudflare credentials and vsagcrd.org domain
+docker-compose --profile tools run cert-generator
 ----
 
-. Copy environment template and configure:
+. Configure proxy environment:
 +
 ----
-cp docker-vsc/.env.template docker-vsc/.env
-# Edit docker-vsc/.env with your settings
+cp docker-proxy/.env.template docker-proxy/.env
+# Edit docker-proxy/.env with your vsagcrd.org subdomain
 ----
 
-. Build and run the container:
+. Start the development environment:
++
+----
+docker-compose --profile dev up -d
+----
+
+. Access VS Code at: `https://your-subdomain.vsagcrd.org:8443`
+
+. Start the complete environment:
 +
 ----
 docker-compose up
 ----
 
-. Access VS Code at `https://localhost:8443`
+. Access VS Code at `https://vsagcrd.org`
 
-== Certificate Generation
+== Architecture Overview
 
-For Let's Encrypt certificates with Cloudflare DNS:
+The system uses a three-tier architecture designed for production deployment:
 
-. Configure cert generator:
+image::images/proxy-deployment-sequence.png[Production Architecture Flow, 800, 600]
+
+=== Service Components
+
+**CoreDNS Service** (`docker-coredns/`)::
+- Internal DNS resolution for `.vsagcrd.org` domain
+- Service discovery for container-to-container communication
+- Static IP assignment and hostname resolution
+- Forwards external queries to public DNS servers
+
+**Nginx Reverse Proxy** (`docker-proxy/`)::
+- SSL termination with Let's Encrypt certificates for `vsagcrd.org`
+- HTTP to HTTPS redirection  
+- Security headers and modern TLS configuration
+- WebSocket support for VS Code real-time features
+- Standard ports: 80 (HTTP redirect) and 443 (HTTPS)
+
+**VS Code Service** (`docker-vsc/`)::
+- Code-server accessible as `vscode.vsagcrd.org` internally
+- Pre-installed development extensions (PlantUML, AsciiDoctor)
+- Internal network access only (security isolation)
+- Development tools: Java, Graphviz, mkcert, standard utilities
+
+**Certificate Generator** (`docker-certbot/`)::
+- Let's Encrypt certificate generation for `vsagcrd.org` via Cloudflare DNS-01 challenge
+- Automated certificate renewal capabilities
+- On-demand execution via Docker Compose profiles
+- Accessible as `certbot.vsagcrd.org` internally
+
+=== Network Architecture
+
+----
+Internet → Nginx Proxy (443/80) → CoreDNS (172.20.0.10) → VS Code Container (vscode.vsagcrd.org:8443)
+                ↓                           ↓
+          Let's Encrypt Certs      Internal DNS Resolution
+              (Volume)              (.vsagcrd.org domain)
+----
+
+**Service Discovery**::
+- CoreDNS provides internal DNS resolution for `.vsagcrd.org` domain
+- Each service has a static IP and hostname (e.g., `vscode.vsagcrd.org`)
+- Container-to-container communication uses domain names, not IP addresses
+- External DNS queries forwarded to public DNS servers (8.8.8.8, 1.1.1.1)
+
+**Security Boundaries**::
+- Public internet only reaches the proxy service
+- All internal services isolated on private network (172.20.0.0/16)
+- Certificate volume shared read-only with proxy
+- DNS resolution controlled by internal CoreDNS server
+
+=== Directory Structure
+
+----
+docker/
+├── docker-compose.yaml          # Complete orchestration
+├── docker-coredns/               # Internal DNS server
+│   ├── Corefile                 # CoreDNS configuration
+│   ├── vsagcrd.org.db          # Internal domain DNS records
+│   └── reverse.db              # Reverse DNS lookup
+├── docker-proxy/                # Nginx reverse proxy
+│   ├── Dockerfile
+│   ├── nginx.conf               # Production SSL config
+│   └── .env.template
+├── docker-vsc/                  # VS Code server
+│   ├── Dockerfile
+│   ├── generate_certs.sh        # Internal cert generation
+│   ├── extensions.json          # Pre-installed extensions
+│   └── .env.template
+└── docker-certbot/              # Certificate management
+    ├── Dockerfile
+    ├── entrypoint.sh            # Let's Encrypt automation
+    └── .env.template
+images/                           # Technical diagrams → PNG
+docs/                            # Generated documentation
+.github/workflows/               # Documentation automation
+----
+
+== SSL Certificate Management
+
+The system exclusively uses Let's Encrypt certificates for production-grade SSL:
+
+image::images/cert-generator-sequence.png[Certificate Generation Process, 800, 600]
+
+=== Certificate Generation Process
+
+==== Prerequisites
+
+. Register your domain with a registrar
+. Configure domain DNS through Cloudflare
+. Create Cloudflare API token with DNS edit permissions: https://dash.cloudflare.com/profile/api-tokens
+. Obtain Cloudflare Zone ID for your domain
+
+==== Certificate Generation Steps
+
+. Configure certificate generator:
 +
 ----
+cd docker
 cp docker-certbot/.env.template docker-certbot/.env
-# Add your Cloudflare API token and domain
+----
+
+. Edit `docker-certbot/.env` with your credentials:
++
+----
+DOMAIN=yoursubdomain.vsagcrd.org
+DOMAINS=yoursubdomain.vsagcrd.org,*.vsagcrd.org
+CLOUDFLARE_API_TOKEN=your_api_token_here
+CLOUDFLARE_ZONE_ID=your_zone_id_here
 ----
 
 . Generate certificates:
@@ -49,40 +219,211 @@ cp docker-certbot/.env.template docker-certbot/.env
 docker-compose --profile tools run cert-generator
 ----
 
-See link:steps-to-create-certs.asciidoc[Certificate Generation Guide] for detailed instructions.
+. Certificates are automatically available to the proxy via Docker volume
 
-== Directory Structure
+==== Certificate Renewal
+
+Certificates can be renewed by re-running the certificate generator:
 
 ----
-docker/
-├── docker-compose.yaml          # Main orchestration file
-├── docker-vsc/                  # VS Code server container
-│   ├── Dockerfile
-│   ├── generate_certs.sh
-│   ├── nginx.conf
-│   └── .env.template
-└── docker-certbot/              # Certificate generation container
-    ├── Dockerfile
-    ├── entrypoint.sh
-    └── .env.template
-images/                           # PlantUML diagrams
-data/                            # Test and example files
-docs/                            # Generated documentation (HTML/PDF)
+docker-compose --profile tools run cert-generator
+docker-compose restart proxy
 ----
 
-== Features
+For automated renewal, set up a cron job or systemd timer to run the generation command.
 
-- SSL-enabled VS Code server with automatic certificate generation
-- PlantUML and AsciiDoctor extensions pre-installed
-- Let's Encrypt certificate support via Cloudflare DNS
-- Automatic documentation building via GitHub Actions
-- Persistent volumes for configuration and data
+== Development Environment
 
-== Development
+=== Included Development Tools
 
-This project uses:
+**Pre-installed Extensions**::
+- PlantUML: Technical diagram creation with Java runtime and Graphviz
+- AsciiDoctor: Technical documentation authoring and preview
 
-- **AsciiDoc** (`.asciidoc`) for main documentation
-- **PlantUML** (`.plantuml`) for diagrams  
-- **Include files** (`.adoc`, `.puml`) for reusable content
-- **GitHub Actions** for automated builds of documentation and diagrams
+**Development Stack**::
+- VS Code Server with full extension support
+- Git for version control
+- Node.js development tools
+- Java 17 runtime for PlantUML
+- Standard Unix utilities (curl, wget, openssl)
+
+**Security Features**::
+- Password-protected access
+- HTTPS-only communication
+- Internal network isolation
+- Non-root container execution
+
+=== Container Configuration
+
+VS Code service configuration via environment variables:
+
+----
+# Certificate hostnames (for internal certificates)
+CERT_HOSTNAMES=localhost 127.0.0.1
+
+# Additional VS Code configuration can be added here
+----
+
+== Documentation System
+
+Automated documentation building powered by GitHub Actions:
+
+image::images/github-actions-workflow.png[Documentation Build Process, 800, 600]
+
+=== Documentation Architecture
+
+**Source Files**::
+- `README.asciidoc`: Main project documentation (this file)
+- `*.plantuml`: Technical diagrams and flowcharts
+- `.adoc`, `.puml`: Include files for modular content
+
+**Generated Output**::
+- HTML and PDF documentation in `docs/`
+- PNG diagrams generated alongside source files
+- Automated builds on every commit
+
+=== Build Process
+
+The GitHub Actions workflow automatically:
+
+. Triggers on changes to `.asciidoc` or `.plantuml` files
+. Installs AsciiDoctor, PlantUML, Java, and Graphviz
+. Converts documentation to HTML and PDF formats
+. Converts diagrams to PNG images
+. Commits generated files back to repository
+. Uses `[skip ci]` to prevent build loops
+
+== Deployment
+
+=== Single Deployment Model
+
+The system uses one standardized deployment approach:
+
+. **Certificate Generation**: Use Let's Encrypt with DNS validation
+. **Proxy Deployment**: Nginx handles SSL termination and routing
+. **Standard Ports**: HTTP (80) redirects to HTTPS (443)
+. **Domain-Based**: Requires proper domain configuration
+
+=== Deployment Steps
+
+. Configure DNS to point your domain to the deployment server
+. Generate certificates using the certificate generator
+. Start all services with docker-compose
+. Access via standard HTTPS URL
+
+=== Production Considerations
+
+**Domain Requirements**::
+- Must have a registered domain name
+- Domain must be configured in Cloudflare DNS
+- DNS must resolve to the deployment server's public IP
+
+**Server Requirements**::
+- Docker and Docker Compose installed
+- Ports 80 and 443 accessible from internet
+- Sufficient resources for development workloads
+
+**Security Considerations**::
+- Automatic security headers via Nginx
+- Modern TLS configuration (TLS 1.2+)
+- HTTP Strict Transport Security (HSTS)
+- No direct container exposure to internet
+
+== Operations and Maintenance
+
+=== Monitoring and Logs
+
+Access logs for troubleshooting:
+
+----
+# All services
+docker-compose logs
+
+# Specific services
+docker-compose logs proxy
+docker-compose logs code-server
+docker-compose --profile tools logs cert-generator
+----
+
+=== Certificate Management
+
+Monitor certificate expiration:
+
+----
+# Check certificate details
+openssl x509 -in <(docker-compose exec proxy cat /etc/nginx/certs/fullchain.pem) -text -noout
+----
+
+Automate renewal with cron:
+
+----
+# Add to crontab for monthly renewal
+0 0 1 * * cd /path/to/project/docker && docker-compose --profile tools run cert-generator && docker-compose restart proxy
+----
+
+=== Troubleshooting
+
+**Common Issues**::
+
+- **Certificate Generation Fails**: Verify Cloudflare API token permissions and DNS configuration
+- **Proxy Won't Start**: Check certificate files exist in volume
+- **Access Denied**: Verify domain DNS points to correct server
+- **WebSocket Issues**: Ensure proxy configuration includes WebSocket support
+
+**Diagnostic Commands**::
+
+----
+# Test certificate generation
+docker-compose --profile tools run cert-generator
+
+# Verify proxy configuration
+docker-compose exec proxy nginx -t
+
+# Check internal connectivity
+docker-compose exec proxy curl -k https://code-server:8443
+----
+
+== Extension and Customization
+
+=== Adding Custom Extensions
+
+Modify `docker-vsc/extensions.json` and rebuild:
+
+----
+{
+  "recommendations": [
+    "jebbs.plantuml",
+    "asciidoctor.asciidoctor-vscode",
+    "your.custom.extension"
+  ]
+}
+----
+
+=== Custom Nginx Configuration
+
+Edit `docker-proxy/nginx.conf` for:
+
+- Custom security headers
+- Additional upstream services
+- Rate limiting
+- Custom routing rules
+
+=== Documentation Extensions
+
+- Add `.asciidoc` files anywhere for automatic building
+- Create `.plantuml` files for automatic diagram generation
+- Extend GitHub Actions workflow for additional build steps
+
+== Contributing
+
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/enhancement`
+3. Test changes with full deployment
+4. Ensure documentation builds correctly
+5. Submit pull request with architectural justification
+
+All documentation and diagrams are automatically built and updated via GitHub Actions.
+
+---
+
+*This project provides a production-ready, secure development environment following modern containerization and security best practices.*

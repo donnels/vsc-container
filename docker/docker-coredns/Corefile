@@ -1,0 +1,35 @@
+. {
+    # Forward all external DNS queries to public DNS servers
+    forward . 8.8.8.8 1.1.1.1
+    
+    # Enable caching
+    cache 30
+    
+    # Enable error logging
+    errors
+    
+    # Enable health check endpoint
+    health {
+        lameduck 5s
+    }
+    
+    # Enable metrics
+    prometheus :9153
+}
+
+# Internal vsagcrd.org domain resolution
+vsagcrd.org {
+    # Static DNS entries for internal services
+    file /etc/coredns/vsagcrd.org.db
+    
+    # Enable logging for internal domain
+    log
+    errors
+}
+
+# Reverse DNS for internal network
+20.172.in-addr.arpa {
+    file /etc/coredns/reverse.db
+    log
+    errors
+}

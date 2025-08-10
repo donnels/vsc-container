@@ -1,4 +1,4 @@
-@startuml
+@startuml cert-generator-sequence
 title Certificate Generation Sequence Diagram
 footer (C)2025 Sean Donnellan
 

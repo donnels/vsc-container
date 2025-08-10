@@ -1,23 +1,65 @@
-@startuml
-package "docker" {
-  folder ".devcontainer" {
-    file "devcontainer.json"
-    file "Dockerfile"
+@startuml config-overview
+title VSCode Container Project Structure
+footer (C)2025 Sean Donnellan
+
+skinparam shadowing 1
+skinparam BackgroundColor #fff/aaf
+skinparam participantBackgroundColor #fff/aaf
+
+package "docker/" {
+  file "docker-compose.yaml" as compose
+  
+  package "docker-vsc/" {
+    file "Dockerfile" as vsc_docker
+    file "generate_certs.sh" as cert_script
+    file "nginx.conf" as nginx
+    file ".env.template" as vsc_env
+    file "extensions.json" as extensions
   }
-  folder "config" {
-    file "nginx.conf"
+  
+  package "docker-certbot/" {
+    file "Dockerfile" as certbot_docker
+    file "entrypoint.sh" as certbot_entry
+    file ".env.template" as certbot_env
+    file ".gitignore" as certbot_ignore
   }
-  folder "scripts" {
-    file "generate_certs.sh"
+  
+  package "docker-proxy/" {
+    file "Dockerfile" as proxy_docker
+    file "nginx.conf" as proxy_nginx
+    file ".env.template" as proxy_env
   }
-  file ".env.template"
-  file "code-server.yaml"
+}
+
+package "Repository Root" {
+  folder "images/" {
+    file "*.plantuml" as diagrams
+  }
+  folder "data/" {
+    file "test.asciidoc" as test_data
+    file "test-diagram.plantuml" as test_diagram
+  }
+  folder "docs/" {
+    file "*.html" as html_docs
+    file "*.pdf" as pdf_docs
+  }
+  folder ".github/workflows/" {
+    file "build-docs.yml" as actions
+  }
+  file "README.asciidoc" as main_readme
+  file "steps-to-create-certs.asciidoc" as cert_steps
 }
 
 actor User
-User --> ".env.template": "Edit env vars"
-User --> "code-server.yaml": "Run compose"
-"code-server.yaml" --> "Dockerfile": "Build image"
-"Dockerfile" --> "nginx.conf": "Copy config"
-"Dockerfile" --> "generate_certs.sh": "Run script"
+User --> vsc_env: "Configure VS Code"
+User --> certbot_env: "Configure certificates"
+User --> proxy_env: "Configure proxy"
+User --> compose: "docker-compose up"
+compose --> vsc_docker: "Build VS Code service"
+compose --> certbot_docker: "Build cert service (profile)"
+compose --> proxy_docker: "Build proxy service"
+vsc_docker --> cert_script: "Generate internal certs"
+vsc_docker --> extensions: "Install extensions"
+actions --> diagrams: "Build PlantUML → PNG"
+actions --> main_readme: "Build AsciiDoc → HTML/PDF"
 @enduml

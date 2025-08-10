@@ -1,0 +1,39 @@
+@startuml proxy-deployment-sequence
+title Production Proxy Deployment Sequence
+footer (C)2025 Sean Donnellan
+
+skinparam shadowing 1
+skinparam BackgroundColor #fff/aaf
+skinparam participantBackgroundColor #fff/aaf
+
+actor "External User" as User
+participant "DNS" as DNS
+participant "Nginx Proxy" as Proxy
+participant "VS Code Container" as VSCode
+participant "Let's Encrypt Certs" as Certs
+
+note over User, Certs: Production Deployment with Proxy
+
+User -> DNS: Resolve yourdomain.com
+DNS --> User: Public IP
+
+User -> Proxy: HTTPS Connect :443 (Let's Encrypt cert)
+Proxy -> Certs: Load SSL certificate
+Certs --> Proxy: Valid certificate
+
+Proxy -> VSCode: Forward to :8443 (internal HTTPS)
+VSCode -> VSCode: Authenticate user
+VSCode --> Proxy: Serve VS Code UI
+
+Proxy --> User: Proxied VS Code Interface (trusted SSL)
+
+note over User, VSCode: Development Session
+User -> Proxy: Edit files, run commands
+Proxy -> VSCode: Forward requests
+VSCode -> VSCode: Process development tasks
+VSCode --> Proxy: Return results
+Proxy --> User: Live updates
+
+note over Proxy: Nginx provides:\n- SSL termination\n- Load balancing\n- Advanced routing\n- Security headers
+note over VSCode: VS Code provides:\n- Development environment\n- File editing\n- Terminal access\n- Extensions
+@enduml

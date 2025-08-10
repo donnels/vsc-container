@@ -1,5 +1,17 @@
 version: '3.8'
 services:
+  coredns:
+    image: coredns/coredns:latest
+    command: -conf /etc/coredns/Corefile
+    volumes:
+      - ./docker-coredns/Corefile:/etc/coredns/Corefile:ro
+      - ./docker-coredns/vsagcrd.org.db:/etc/coredns/vsagcrd.org.db:ro
+      - ./docker-coredns/reverse.db:/etc/coredns/reverse.db:ro
+    networks:
+      internal:
+        ipv4_address: 172.20.0.10
+    restart: unless-stopped
+
   code-server:
     build:
       context: ./docker-vsc
@@ -7,9 +19,7 @@ services:
     env_file:
       - ./docker-vsc/.env
     environment:
-      - CERT_HOSTNAMES=${CERT_HOSTNAMES:-steamdeck.fritz.box localhost 127.0.0.1 ::1}
-    ports:
-      - "8443:8443"
+      - CERT_HOSTNAMES=${CERT_HOSTNAMES:-vscode.vsagcrd.org localhost 127.0.0.1}
     volumes:
       - ../:/workspace
       - ../data:/data
@@ -18,6 +28,15 @@ services:
       - code-server-code:/home/coder/code
     command: ["/usr/bin/code-server", "/home/coder/code", "--bind-addr", "0.0.0.0:8443", "--auth", "password", "--cert", "/home/coder/.config/code-server/certs/code-server.crt", "--cert-key", "/home/coder/.config/code-server/certs/code-server.key"]
     restart: unless-stopped
+    dns:
+      - 172.20.0.10
+    networks:
+      internal:
+        ipv4_address: 172.20.0.12
+        aliases:
+          - vscode.vsagcrd.org
+    depends_on:
+      - coredns
 
   cert-generator:
     build:
@@ -29,9 +48,48 @@ services:
       - cert-output:/etc/letsencrypt/live
     profiles:
       - tools
+    dns:
+      - 172.20.0.10
+    networks:
+      internal:
+        ipv4_address: 172.20.0.13
+        aliases:
+          - certbot.vsagcrd.org
+    depends_on:
+      - coredns
+
+  proxy:
+    build:
+      context: ./docker-proxy
+      dockerfile: Dockerfile
+    env_file:
+      - ./docker-proxy/.env
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - cert-output:/etc/nginx/certs:ro
+    depends_on:
+      - code-server
+      - coredns
+    restart: unless-stopped
+    dns:
+      - 172.20.0.10
+    networks:
+      internal:
+        ipv4_address: 172.20.0.11
+        aliases:
+          - proxy.vsagcrd.org
 
 volumes:
   code-server-config:
   code-server-data:
   code-server-code:
   cert-output:
+
+networks:
+  internal:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
