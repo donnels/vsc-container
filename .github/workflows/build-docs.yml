@@ -47,22 +47,6 @@ jobs:
     - name: Ensure docs directory exists
       run: mkdir -p docs
     
-    - name: Build AsciiDoc files to HTML
-      run: |
-        find . -name "*.asciidoc" -not -path "./docs/*" | while read file; do
-          echo "Processing $file to HTML"
-          filename=$(basename "$file" .asciidoc)
-          asciidoctor "$file" -o "docs/${filename}.html"
-        done
-    
-    - name: Build AsciiDoc files to PDF
-      run: |
-        find . -name "*.asciidoc" -not -path "./docs/*" | while read file; do
-          echo "Processing $file to PDF"
-          filename=$(basename "$file" .asciidoc)
-          asciidoctor-pdf "$file" -o "docs/${filename}.pdf"
-        done
-    
     - name: Build PlantUML files to PNG
       run: |
         find . -name "*.plantuml" | while read file; do
@@ -79,6 +63,22 @@ jobs:
             # Clean up empty nested directory
             rmdir "$dir/$dir" 2>/dev/null || true
           fi
+        done
+    
+    - name: Build AsciiDoc files to HTML
+      run: |
+        find . -name "*.asciidoc" -not -path "./docs/*" | while read file; do
+          echo "Processing $file to HTML"
+          filename=$(basename "$file" .asciidoc)
+          asciidoctor "$file" -o "docs/${filename}.html"
+        done
+    
+    - name: Build AsciiDoc files to PDF
+      run: |
+        find . -name "*.asciidoc" -not -path "./docs/*" | while read file; do
+          echo "Processing $file to PDF"
+          filename=$(basename "$file" .asciidoc)
+          asciidoctor-pdf "$file" -o "docs/${filename}.pdf"
         done
     
     - name: List generated files
