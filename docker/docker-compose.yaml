@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   coredns:
-    image: coredns/coredns:latest
+    image: docker.io/coredns/coredns:latest
     command: -conf /etc/coredns/Corefile
     volumes:
       - ./docker-coredns/Corefile:/etc/coredns/Corefile:ro
@@ -66,9 +66,9 @@ services:
     env_file:
       - ./docker-proxy/.env
     ports:
-      - "443:443"
-      - "80:80"
-      - "8080:8080"
+      - "8443:443"
+      - "8080:80"
+      - "8081:8080"
     volumes:
       - cert-output:/etc/nginx/certs:ro
     depends_on:

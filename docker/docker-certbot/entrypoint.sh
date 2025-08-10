@@ -19,18 +19,31 @@ generate_cert() {
   
   echo "Generating certificate for: $domains (name: $cert_name)"
   
-  # Parse domains for certbot
+  # Parse domains for certbot - build arguments properly
   DOMAINS_ARG=""
   IFS=','
   for domain in $domains; do
-    DOMAINS_ARG="$DOMAINS_ARG -d $domain"
+    # Trim whitespace and add -d flag
+    domain=$(echo "$domain" | tr -d ' ')
+    if [ -z "$DOMAINS_ARG" ]; then
+      DOMAINS_ARG="-d $domain"
+    else
+      DOMAINS_ARG="$DOMAINS_ARG -d $domain"
+    fi
   done
+  unset IFS
+  
+  echo "Running: certbot certonly --dns-cloudflare --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini --cert-name $cert_name --non-interactive --agree-tos --email admin@$DOMAIN $DOMAINS_ARG"
   
   # Generate certificate with specific name
   certbot certonly \
     --dns-cloudflare \
     --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini \
+    --dns-cloudflare-propagation-seconds 60 \
     --cert-name "$cert_name" \
+    --non-interactive \
+    --agree-tos \
+    --email "admin@$DOMAIN" \
     $DOMAINS_ARG
 }
 

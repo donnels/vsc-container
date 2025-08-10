@@ -1,78 +1,498 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>LCARS Operations Console</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="stylesheet" href="style.css" />
-<!-- Inline styles removed in favor of enhanced LCARS theme in style.css -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LCARS Operations Console</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 <body>
-<div class="lcars-frame">
-  <header class="lcars-bar top">
-    <div class="segment title">LCARS OPS</div>
-    <div class="segment stardate" id="stardate"></div>
-  </header>
-  <main class="lcars-grid">
-    <section class="panel navigation">
-      <h1>Systems</h1>
-      <a class="lcars-button critical" href="/access-engineering" target="_blank">Access Engineering</a>
-      <a class="lcars-button" href="/engineering" target="_blank">Engineering (Alt)</a>
-    </section>
-    <section class="panel status">
-      <h1>Status</h1>
-      <div class="status-chips" id="chips">
-        <span class="chip" id="chip-proxy">PROXY?</span>
-        <span class="chip" id="chip-code">CODE?</span>
-        <span class="chip" id="chip-cert">CERTS?</span>
+  <div class="lcars-frame">
+    <!-- Header -->
+    <header class="lcars-header">
+      Engineering Selection Console
+    </header>
+
+    <!-- Sidebar Navigation -->
+    <nav class="lcars-sidebar">
+      <div class="sidebar-top">
+        <a href="/access-engineering" target="_blank" class="lcars-button critical">Data<br>Engineering<br>Console</a>
+        <a href="/engineering" target="_blank" class="lcars-button secondary">Visual<br>Code<br>Console</a>
+        <div class="lcars-button" style="background: #666; cursor: default;">System Health</div>
+        <div class="lcars-button" style="background: #666; cursor: default;">Diagnostics</div>
+        <div class="lcars-button" style="background: #666; cursor: default;">Security</div>
       </div>
-      <ul id="status-list">
-        <li>Initializing...</li>
-      </ul>
-    </section>
-    <section class="panel docs">
-      <h1>Documentation</h1>
-      <div class="doc-buttons">
-        <a class="lcars-button" href="/docs/README.html" target="_blank">HTML</a>
-        <a class="lcars-button" href="/docs/README.pdf" target="_blank">PDF</a>
-        <a class="lcars-button" href="/docs/README.docx" target="_blank">DOCX</a>
+      <div class="sidebar-bottom">
+        <button class="lcars-button tertiary" onclick="location.reload()">↻ Refresh</button>
       </div>
-    </section>
-  </main>
-  <footer class="lcars-bar bottom">
-    <div class="segment">ACCESS LOGGED</div>
-    <div class="segment">SECURE CHANNEL</div>
-  </footer>
-</div>
-<script>
-function stardate(){
-  const d=new Date();
-  const year=d.getFullYear();
-  const start=new Date(year,0,1);
-  const sd=(1000*((d-start)/(365*24*3600*1000)) + (year-2000)*1000).toFixed(1);
-  document.getElementById('stardate').textContent='Stardate '+sd;
-}
-async function health(){
-  try {
-    const r=await fetch('/health',{cache:'no-store'});
-    const ok=r.ok; updateChip('chip-proxy', ok?'PROXY OK':'PROXY ERR', ok?'ok':'bad');
-  } catch { updateChip('chip-proxy','PROXY ERR','bad'); }
-  // Code-server probe via HEAD on base path
-  try {
-    const r=await fetch('/',{method:'HEAD'});
-    updateChip('chip-code', r.ok?'CODE OK':'CODE WARN', r.ok?'ok':'warn');
-  } catch { updateChip('chip-code','CODE ERR','bad'); }
-  // Cert presence heuristic (proxy cert path exposed via 200 health implies mounted)
-  updateChip('chip-cert','CERTS OK','ok');
-}
-function updateChip(id,text,cls){
-  const el=document.getElementById(id); if(!el) return; el.className='chip '+cls; el.textContent=text; }
-function classify(){
-  const w=window.innerWidth; const b=document.body; b.classList.remove('size-small','size-medium','size-large','size-xlarge');
-  if(w<640) b.classList.add('size-small'); else if(w<1100) b.classList.add('size-medium'); else if(w<1600) b.classList.add('size-large'); else b.classList.add('size-xlarge');
-}
-window.addEventListener('resize', classify);
-setInterval(()=>{stardate();health();},15000); stardate(); health(); classify();
-</script>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="lcars-main">
+      <h1>Operations Console</h1>
+      
+      <h2>System Status</h2>
+      <div class="status-grid">
+        <div class="status-panel">
+          <h3><span class="status-indicator" id="proxy-status"></span>Proxy Server</h3>
+          <p id="proxy-text">Checking...</p>
+        </div>
+        <div class="status-panel">
+          <h3><span class="status-indicator" id="code-status"></span>Code Server</h3>
+          <p id="code-text">Checking...</p>
+        </div>
+        <div class="status-panel">
+          <h3><span class="status-indicator" id="cert-status"></span>SSL Certificates</h3>
+          <p id="cert-text">Checking...</p>
+        </div>
+      </div>
+
+      <h2>Documentation Access</h2>
+      <div class="doc-links">
+        <a href="/docs/README.html" target="_blank" class="doc-link">HTML Docs</a>
+        <a href="/docs/README.pdf" target="_blank" class="doc-link">PDF Manual</a>
+        <a href="/docs/README.docx" target="_blank" class="doc-link">DOCX Export</a>
+      </div>
+
+      <h2>System Information</h2>
+      <div class="status-panel">
+        <p><strong>Container:</strong> VSCode Development Environment</p>
+        <p><strong>Network:</strong> Internal Docker Network</p>
+        <p><strong>Security:</strong> SSL/TLS Enabled</p>
+        <p><strong>Access Level:</strong> Engineering Console</p>
+      </div>
+
+      <h2>Quick Access</h2>
+      <div class="qr-section">
+        <canvas id="qr-code" style="max-width: 200px; height: auto; background: white; padding: 10px; border-radius: 10px;"></canvas>
+        <p id="current-url" style="font-size: 12px; color: var(--lcars-blue); margin-top: 10px; word-break: break-all;"></p>
+      </div>
+    </main>
+
+    <!-- Status sidebar -->
+    <nav class="lcars-status">
+      <div class="status-top">
+        <div class="status-button" id="status-web" onclick="showStatusModal('web')">Web</div>
+        <div class="status-button" id="status-proxy" onclick="showStatusModal('proxy')">Proxy</div>
+        <div class="status-button" id="status-vscode" onclick="showStatusModal('vscode')">VSCode</div>
+        <div class="status-button" id="status-encryption" onclick="showStatusModal('encryption')">Encryption</div>
+        <div class="status-button inactive" id="status-app">App Srv</div>
+        <div class="status-button inactive" id="status-db">Database</div>
+      </div>
+      <div class="status-bottom">
+        <button class="status-button" onclick="toggleFullscreen()" style="background: var(--lcars-purple); cursor: pointer;">⛶ Full<br>Screen</button>
+      </div>
+    </nav>
+
+    <!-- Status Modal -->
+    <div id="status-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="modal-title">System Status</h3>
+          <span class="modal-close" onclick="closeStatusModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+          <div id="modal-status-info">
+            <h4>Current Status:</h4>
+            <p id="modal-current-status">Loading...</p>
+            
+            <h4>What We Check:</h4>
+            <ul id="modal-check-details">
+              <li>Loading...</li>
+            </ul>
+            
+            <h4>Possible Issues:</h4>
+            <ul id="modal-possible-issues">
+              <li>Loading...</li>
+            </ul>
+          </div>
+          
+          <div class="status-legend">
+            <h4>Status Legend:</h4>
+            <div class="legend-item">
+              <span class="legend-indicator ok"></span>
+              <span>Online/Valid - System operational</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-indicator warn"></span>
+              <span>Warning - Partial functionality</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-indicator critical"></span>
+              <span>Critical - System failure</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-indicator pending"></span>
+              <span>Checking - Status verification in progress</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-indicator file-mode"></span>
+              <span>File Mode - Cannot verify (local file)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-indicator unreachable"></span>
+              <span>Unreachable - Network connection failed</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="lcars-footer">
+      © 2025 Sean Donnellan
+    </footer>
+  </div>
+
+  <script>
+    function updateStardate() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const start = new Date(year, 0, 1);
+      const dayOfYear = Math.floor((now - start) / (24 * 60 * 60 * 1000)) + 1;
+      const stardate = (1000 * ((now - start) / (365 * 24 * 60 * 60 * 1000)) + (year - 2000) * 1000).toFixed(1);
+      // Update title instead of non-existent stardate element
+      document.title = `LCARS Operations Console - Stardate ${stardate}`;
+    }
+
+    function initializeStatusButtons() {
+      // Set all status buttons to pending initially
+      const statusButtons = ['status-proxy', 'status-web', 'status-vscode', 'status-encryption'];
+      statusButtons.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn && !btn.classList.contains('inactive')) {
+          btn.className = 'status-button pending';
+        }
+      });
+    }
+
+    async function checkSystemHealth() {
+      // Check Proxy
+      try {
+        const proxyResponse = await fetch('/health', { cache: 'no-store' });
+        if (proxyResponse.ok) {
+          updateStatus('proxy', 'ok', 'Online - All Systems Nominal');
+        } else {
+          updateStatus('proxy', 'warn', 'Warning - Partial Response');
+        }
+      } catch {
+        updateStatus('proxy', 'critical', 'Critical - Connection Failed');
+        updateStatusButton('status-proxy', 'unreachable');
+      }
+
+      // Check Code Server
+      try {
+        const codeResponse = await fetch('/', { method: 'HEAD' });
+        if (codeResponse.ok) {
+          updateStatus('code', 'ok', 'Online - Ready for Access');
+        } else {
+          updateStatus('code', 'warn', 'Warning - Limited Response');
+        }
+      } catch {
+        updateStatus('code', 'critical', 'Critical - Service Unavailable');
+        updateStatusButton('status-vscode', 'unreachable');
+      }
+
+      // Certificate status (check if we're in file mode first)
+      if (window.location.protocol === 'file:') {
+        updateStatus('cert', 'warn', 'File Mode - Cannot Verify SSL');
+        updateStatusButton('status-encryption', 'file-mode');
+      } else {
+        updateStatus('cert', 'ok', 'Valid - SSL/TLS Active');
+      }
+    }
+
+    function updateStatus(system, status, message) {
+      const indicator = document.getElementById(`${system}-status`);
+      const text = document.getElementById(`${system}-text`);
+      
+      if (indicator) {
+        indicator.className = `status-indicator ${status}`;
+      }
+      if (text) {
+        text.textContent = message;
+      }
+      
+      // Update status buttons - map system names correctly
+      let statusBtnId;
+      if (system === 'proxy') statusBtnId = 'status-proxy';
+      else if (system === 'code') statusBtnId = 'status-vscode';
+      else if (system === 'cert') statusBtnId = 'status-encryption';
+      
+      if (statusBtnId) {
+        const statusBtn = document.getElementById(statusBtnId);
+        if (statusBtn && !statusBtn.classList.contains('inactive')) {
+          statusBtn.className = `status-button ${status}`;
+        }
+      }
+    }
+
+    function updateStatusButton(id, status) {
+      const btn = document.getElementById(id);
+      if (btn && !btn.classList.contains('inactive')) {
+        btn.className = `status-button ${status}`;
+      }
+    }
+
+    function checkWebServerAvailability() {
+      // Check if we're loading from file:// protocol
+      if (window.location.protocol === 'file:') {
+        updateStatusButton('status-web', 'file-mode');
+        updateStatusButton('status-encryption', 'file-mode');
+        return;
+      }
+      
+      // For non-file protocols, check encryption status
+      checkEncryptionStatus();
+      
+      // Check if we can reach the web server
+      try {
+        // Use a simple fetch to check server availability
+        fetch('/health', { 
+          method: 'HEAD', 
+          cache: 'no-store',
+          timeout: 5000 
+        }).then(response => {
+          if (response.ok) {
+            updateStatusButton('status-web', 'web-ok');
+          } else {
+            updateStatusButton('status-web', 'warn');
+          }
+        }).catch(() => {
+          updateStatusButton('status-web', 'unreachable');
+        });
+      } catch {
+        updateStatusButton('status-web', 'unreachable');
+      }
+    }
+
+    function checkEncryptionStatus() {
+      const protocol = window.location.protocol;
+      const hostname = window.location.hostname;
+      
+      if (protocol === 'file:') {
+        updateStatusButton('status-encryption', 'file-mode');
+        return;
+      }
+      
+      if (protocol === 'http:') {
+        updateStatusButton('status-encryption', 'http-insecure');
+        return;
+      }
+      
+      if (protocol === 'https:') {
+        // Check if it's likely a self-signed cert (localhost, IP, or dev domains)
+        if (hostname === 'localhost' || 
+            hostname === '127.0.0.1' || 
+            hostname.match(/^\d+\.\d+\.\d+\.\d+$/) || 
+            hostname.endsWith('.local') ||
+            hostname.endsWith('.dev') ||
+            hostname.endsWith('.test')) {
+          updateStatusButton('status-encryption', 'https-self-signed');
+        } else {
+          updateStatusButton('status-encryption', 'https-valid');
+        }
+      }
+    }
+
+    function generateQRCode() {
+      const currentUrl = window.location.href;
+      const canvas = document.getElementById('qr-code');
+      const urlText = document.getElementById('current-url');
+      
+      // Display the URL text
+      urlText.textContent = currentUrl;
+      
+      // Check if we're in file mode
+      if (window.location.protocol === 'file:') {
+        // Hide canvas and show message for file mode
+        canvas.style.display = 'none';
+        urlText.textContent = 'QR Code unavailable in file mode. URL: ' + currentUrl;
+        urlText.style.color = '#666';
+        return;
+      }
+      
+      // Generate QR code for non-file protocols
+      if (typeof QRCode !== 'undefined') {
+        QRCode.toCanvas(canvas, currentUrl, {
+          width: 200,
+          margin: 2,
+          color: {
+            dark: '#000000',
+            light: '#ffffff'
+          }
+        }, function (error) {
+          if (error) {
+            console.error('QR Code generation failed:', error);
+            canvas.style.display = 'none';
+            urlText.textContent = 'QR Code generation failed: ' + currentUrl;
+            urlText.style.color = '#cc6666';
+          }
+        });
+      } else {
+        console.error('QRCode library not loaded');
+        canvas.style.display = 'none';
+        urlText.textContent = 'QR Code library unavailable: ' + currentUrl;
+        urlText.style.color = '#cc6666';
+      }
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.log('Error attempting to enable fullscreen:', err.message);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    // Status modal functions
+    function showStatusModal(system) {
+      const modal = document.getElementById('status-modal');
+      const title = document.getElementById('modal-title');
+      const currentStatus = document.getElementById('modal-current-status');
+      const checkDetails = document.getElementById('modal-check-details');
+      const possibleIssues = document.getElementById('modal-possible-issues');
+      
+      const statusData = getStatusData(system);
+      title.textContent = statusData.title;
+      currentStatus.innerHTML = statusData.currentStatus;
+      checkDetails.innerHTML = statusData.checkDetails.map(item => `<li>${item}</li>`).join('');
+      possibleIssues.innerHTML = statusData.possibleIssues.map(item => `<li>${item}</li>`).join('');
+      
+      modal.style.display = 'block';
+    }
+
+    function closeStatusModal() {
+      document.getElementById('status-modal').style.display = 'none';
+    }
+
+    function getStatusData(system) {
+      const btn = document.getElementById(`status-${system}`);
+      const currentClass = btn.className.split(' ').pop();
+      
+      const statusDescriptions = {
+        'web-ok': '🟢 Web server is responding normally',
+        'ok': '🟢 System is operational',
+        'warn': '🟡 System has warnings or partial functionality',
+        'critical': '🔴 System is experiencing critical failures',
+        'pending': '🔵 Checking system status...',
+        'file-mode': '⚪ Cannot verify - running in file mode',
+        'unreachable': '🔴 System is unreachable (blinking)',
+        'https-valid': '🟢 Valid HTTPS certificate',
+        'https-self-signed': '🟡 Self-signed HTTPS certificate',
+        'http-insecure': '🔴 Insecure HTTP connection'
+      };
+
+      const data = {
+        web: {
+          title: 'Web Server Status',
+          currentStatus: statusDescriptions[currentClass] || '❓ Status unknown',
+          checkDetails: [
+            'HTTP/HTTPS connectivity test',
+            'Server response time measurement',
+            'Basic health endpoint verification',
+            'Protocol security assessment'
+          ],
+          possibleIssues: [
+            'Network connectivity problems',
+            'Server overload or maintenance',
+            'Firewall blocking requests',
+            'DNS resolution failures',
+            'SSL certificate issues'
+          ]
+        },
+        proxy: {
+          title: 'Proxy Server Status',
+          currentStatus: statusDescriptions[currentClass] || '❓ Status unknown',
+          checkDetails: [
+            'Proxy health endpoint check (/health)',
+            'Response time and availability',
+            'Request routing functionality',
+            'Load balancing verification'
+          ],
+          possibleIssues: [
+            'Proxy service not running',
+            'Configuration errors',
+            'Backend server failures',
+            'Resource exhaustion',
+            'Authentication issues'
+          ]
+        },
+        vscode: {
+          title: 'VS Code Server Status',
+          currentStatus: statusDescriptions[currentClass] || '❓ Status unknown',
+          checkDetails: [
+            'VS Code server availability',
+            'Authentication system check',
+            'Workspace accessibility',
+            'Extension functionality'
+          ],
+          possibleIssues: [
+            'VS Code server not started',
+            'Authentication failures',
+            'Workspace permission issues',
+            'Port conflicts',
+            'Resource limitations'
+          ]
+        },
+        encryption: {
+          title: 'Encryption & Security Status',
+          currentStatus: statusDescriptions[currentClass] || '❓ Status unknown',
+          checkDetails: [
+            'SSL/TLS certificate validation',
+            'Protocol security verification',
+            'Certificate chain integrity',
+            'Encryption strength assessment'
+          ],
+          possibleIssues: [
+            'Expired SSL certificates',
+            'Self-signed certificate warnings',
+            'Weak encryption protocols',
+            'Certificate chain breaks',
+            'Mixed content warnings'
+          ]
+        }
+      };
+
+      return data[system] || {
+        title: 'Unknown System',
+        currentStatus: '❓ Status unknown',
+        checkDetails: ['No information available'],
+        possibleIssues: ['System not recognized']
+      };
+    }
+
+    // Close modal when clicking outside of it
+    window.onclick = function(event) {
+      const modal = document.getElementById('status-modal');
+      if (event.target === modal) {
+        closeStatusModal();
+      }
+    }
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        closeStatusModal();
+      }
+    });
+
+    // Initialize
+    initializeStatusButtons();
+    updateStardate();
+    checkSystemHealth();
+    checkWebServerAvailability();
+    generateQRCode();
+    
+    // Update every 30 seconds
+    setInterval(() => {
+      updateStardate();
+      checkSystemHealth();
+      checkWebServerAvailability();
+    }, 30000);
+  </script>
 </body>
 </html>
