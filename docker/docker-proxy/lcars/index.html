@@ -5,17 +5,7 @@
 <title>LCARS Operations Console</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="stylesheet" href="style.css" />
-<style>
-:root {
-  --lcars-bg:#000; --lcars-accent-1:#ff9966; --lcars-accent-2:#cc6699; --lcars-accent-3:#6699ff; --lcars-accent-4:#ffcc66; --lcars-critical:#cc3333; --lcars-ok:#2fa866; --lcars-warn:#d2a941; --lcars-bad:#d94141; --lcars-text:#ffffff;
-}
-body { background:var(--lcars-bg); color:var(--lcars-text); }
-.status-chips { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
-.chip { padding:4px 8px; font-size:12px; border-radius:999px; background:#222; border:1px solid #333; letter-spacing:.5px; }
-.chip.ok { background:var(--lcars-ok); }
-.chip.warn { background:var(--lcars-warn); }
-.chip.bad { background:var(--lcars-bad); }
-</style>
+<!-- Inline styles removed in favor of enhanced LCARS theme in style.css -->
 </head>
 <body>
 <div class="lcars-frame">
@@ -77,7 +67,12 @@ async function health(){
 }
 function updateChip(id,text,cls){
   const el=document.getElementById(id); if(!el) return; el.className='chip '+cls; el.textContent=text; }
-setInterval(()=>{stardate();health();},15000); stardate(); health();
+function classify(){
+  const w=window.innerWidth; const b=document.body; b.classList.remove('size-small','size-medium','size-large','size-xlarge');
+  if(w<640) b.classList.add('size-small'); else if(w<1100) b.classList.add('size-medium'); else if(w<1600) b.classList.add('size-large'); else b.classList.add('size-xlarge');
+}
+window.addEventListener('resize', classify);
+setInterval(()=>{stardate();health();},15000); stardate(); health(); classify();
 </script>
 </body>
 </html>
