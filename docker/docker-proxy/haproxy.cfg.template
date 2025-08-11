@@ -67,14 +67,6 @@ backend proxy_status
     
     # Return status information
     http-request return status 200 content-type "text/html" string "<!DOCTYPE html><html><head><title>VSCode Reverse Proxy</title><style>body{font-family:monospace;background:#000;color:#ff9900;padding:20px;}h1{color:#cc99ff;}</style></head><body><h1>VSAGCRD Reverse Proxy</h1><p>Status: <span style='color:#00ff00;'>OPERATIONAL</span></p><p>Access VSCode: <a href='https://steamdeck.fritz.box:8443' style='color:#00ccff;'>https://steamdeck.fritz.box:8443</a></p><p>LCARS Interface: <a href='http://steamdeck.fritz.box:8080' style='color:#00ccff;'>http://steamdeck.fritz.box:8080</a></p></body></html>"
-    
-# Backend for proxy status and health checks
-backend proxy_status
-    mode http
-    timeout server 5000ms
-    
-    # Return status information for non-CONNECT requests
-    http-request return status 200 content-type "text/html" string "<!DOCTYPE html><html><head><title>HAProxy Forward Proxy</title><style>body{font-family:monospace;background:#000;color:#ff9900;padding:20px;}h1{color:#cc99ff;}</style></head><body><h1>VSAGCRD Forward Proxy Active</h1><p>Status: <span style='color:#00ff00;'>OPERATIONAL</span></p><p>HTTPS tunneling available on port 8443</p><p>LCARS interface: <a href='http://steamdeck.fritz.box:8080' style='color:#00ccff;'>http://steamdeck.fritz.box:8080</a></p><p>Configure your browser to use this proxy:</p><ul><li>HTTP Proxy: steamdeck.fritz.box:8443</li><li>HTTPS Proxy: steamdeck.fritz.box:8443</li><li>SSL: Yes (accept self-signed certificate)</li></ul><p>Direct VSCode Access: <a href='https://code-dev.vsagcrd.org:8443' style='color:#00ccff;'>https://code-dev.vsagcrd.org:8443</a></p></body></html>"
 
 # Statistics interface (optional - can be enabled for monitoring)
 # listen stats
