@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-# Generate cloudflare.ini from environment variable
+# Check for required environment variable
 if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
   echo "CLOUDFLARE_API_TOKEN is not set!"
   exit 1
@@ -36,7 +36,7 @@ generate_cert() {
   echo "Running: certbot certonly --dns-cloudflare --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini --cert-name $cert_name --non-interactive --agree-tos --email admin@$DOMAIN $DOMAINS_ARG"
   
   # Generate certificate with specific name
-  certbot certonly \
+  /opt/certbot/bin/certbot certonly \
     --dns-cloudflare \
     --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini \
     --dns-cloudflare-propagation-seconds 60 \
@@ -68,3 +68,11 @@ fi
 echo "Certificate generation complete!"
 echo "Available certificates:"
 ls -la /etc/letsencrypt/live/
+
+echo "Fixing certificate permissions for container access..."
+# Make certificates readable by all users (needed for non-root containers)
+find /etc/letsencrypt/live -name "*.pem" -exec chmod 644 {} \;
+find /etc/letsencrypt/archive -name "*.pem" -exec chmod 644 {} \;
+
+echo "Certificate permissions fixed!"
+ls -la /etc/letsencrypt/live/*/

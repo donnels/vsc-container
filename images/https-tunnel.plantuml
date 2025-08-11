@@ -1,0 +1,43 @@
+@startuml
+title HTTPS tunnelling overview sequence
+footer (C)2025 Sean Donnellan
+
+actor user
+participant headset
+participant router
+box SteamDeck #aaf-fff
+    participant "proxy" as steamdeck.proxy <<container>>
+    participant "nginx" as steamdeck.nginx <<container>>
+    participant "DNS" as steamdeck.dns <<container>>
+    participant "certbot" as steamdeck.certbot <<container>>
+    participant "vsc" as steamdeck.vsc <<container>>
+    participant "app-server" as steamdeck.app <<container>>
+    participant "graph DB" as steamdeck.neo4j <<container>>
+end box
+
+user -> headset: activate headset
+headset -> router: connect to Wi-Fi
+headset -> steamdeck.nginx: http 8080 - request landing page
+headset <- steamdeck.nginx: provide proxy details
+user -> headset: enter proxy details
+headset -> steamdeck.proxy: https 8443
+headset <- steamdeck.proxy: self signed cert
+group tunnel
+    headset -> steamdeck.proxy: https 8443 - request www.vsagcrd.org
+    steamdeck.proxy -> steamdeck.dns: resolve www.vsagcrd.org
+    steamdeck.proxy <- steamdeck.dns: A record
+    steamdeck.proxy -> steamdeck.nginx: https 443 - connect
+    steamdeck.proxy <- steamdeck.nginx: https 443 - LE cert
+    headset <- steamdeck.proxy: https 8443 - LE cert
+end group
+group Graph stuff
+    steamdeck.proxy -> steamdeck.nginx: https 443 - request graph data
+    steamdeck.nginx -> steamdeck.app: http 3000 - request graph data
+    steamdeck.app -> steamdeck.neo4j: cypher query
+    steamdeck.neo4j <- steamdeck.app: cypher response
+    steamdeck.nginx <- steamdeck.app: graph data
+    steamdeck.proxy <- steamdeck.nginx: graph data
+    headset <- steamdeck.proxy: graph data
+end group
+@enduml
+

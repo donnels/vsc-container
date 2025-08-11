@@ -1,0 +1,92 @@
+@startuml forward-proxy-architecture
+title VSCode Container Project - Forward Proxy Architecture
+footer (C)2025 Sean Donnellan
+
+skinparam shadowing 1
+skinparam BackgroundColor #fff/aaf
+skinparam participantBackgroundColor #fff/aaf
+
+actor "User" as user
+participant "Meta Quest 3" as headset
+
+box "Fritz.Box Network" #lightgray
+    participant "Fritz.Box Router" as router
+end box
+
+box "SteamDeck (172.20.0.0/16)" #lightblue
+    participant "HAProxy\nForward Proxy" as proxy <<:8443,:8080>>
+    participant "nginx\nLCARS Interface" as nginx <<:8080>>
+    participant "CoreDNS\nService Discovery" as dns <<:53>>
+    participant "VS Code Server\nDevelopment Environment" as vscode <<:8443>>
+    participant "Certbot\nCertificate Generator" as certbot
+end box
+
+note over proxy
+**HAProxy Forward Proxy**
+- Port 8443: HTTPS forward proxy (self-signed cert)
+- Port 8080: LCARS status interface (HTTP)
+- IP: 172.20.0.11
+- Hostname: forward-proxy.vsagcrd.org
+end note
+
+note over vscode
+**VS Code Server**
+- Port 8443: HTTPS (Let's Encrypt cert)
+- IP: 172.20.0.12
+- Hostname: code-dev.vsagcrd.org
+- Certificate: Real Let's Encrypt
+end note
+
+note over dns
+**CoreDNS**
+- Port 53: DNS resolution
+- IP: 172.20.0.10
+- Resolves *.vsagcrd.org domains
+end note
+
+note over certbot
+**Certbot (Tools Profile)**
+- IP: 172.20.0.13
+- Generates Let's Encrypt certificates
+- DNS-01 challenge via Cloudflare
+end note
+
+== Certificate Generation (One-time Setup) ==
+certbot -> certbot: Generate Let's Encrypt certificate
+note right: For code-dev.vsagcrd.org
+certbot -> dns: Verify internal DNS resolution
+certbot -> vscode: Deliver certificate files
+
+== Forward Proxy Configuration ==
+user -> headset: Configure proxy settings
+note right
+HTTP Proxy: steamdeck.fritz.box:8443
+HTTPS Proxy: steamdeck.fritz.box:8443
+SSL: Accept self-signed certificate
+end note
+
+== LCARS Interface Access ==
+headset -> router: HTTP request
+router -> proxy: Forward to port 8080
+proxy -> nginx: Serve LCARS interface
+nginx -> headset: Status page and configuration
+
+== HTTPS Tunneling Flow ==
+headset -> router: CONNECT code-dev.vsagcrd.org:8443
+router -> proxy: Forward CONNECT request (port 8443)
+proxy -> dns: Resolve code-dev.vsagcrd.org
+dns -> proxy: Return 172.20.0.12
+proxy -> vscode: Establish tunnel connection
+vscode -> proxy: SSL handshake (Let's Encrypt cert)
+proxy -> headset: Tunnel established
+
+group Transparent HTTPS Tunnel
+    headset -> proxy: Encrypted VSCode traffic
+    note right: End-to-end encryption preserved
+    proxy -> vscode: Forwarded without decryption
+    vscode -> proxy: VSCode responses
+    proxy -> headset: Forwarded responses
+    note right: WebSocket connections work transparently
+end
+
+@enduml

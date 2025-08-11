@@ -1,5 +1,5 @@
 @startuml config-overview
-title VSCode Container Project Structure
+title VSCode Container Project - Reverse Proxy Architecture
 footer (C)2025 Sean Donnellan
 
 skinparam shadowing 1
@@ -12,7 +12,6 @@ package "docker/" {
   package "docker-vsc/" {
     file "Dockerfile" as vsc_docker
     file "generate_certs.sh" as cert_script
-    file "nginx.conf" as nginx
     file ".env.template" as vsc_env
     file "extensions.json" as extensions
   }
@@ -21,14 +20,88 @@ package "docker/" {
     file "Dockerfile" as certbot_docker
     file "entrypoint.sh" as certbot_entry
     file ".env.template" as certbot_env
-    file ".gitignore" as certbot_ignore
   }
   
   package "docker-proxy/" {
     file "Dockerfile" as proxy_docker
-    file "nginx.conf" as proxy_nginx
+    file "haproxy.cfg.template" as haproxy_config
+    file "nginx-temp.conf" as nginx_lcars
     file ".env.template" as proxy_env
+    package "lcars/" {
+      file "index.html" as lcars_html
+      file "style.css" as lcars_css
+    }
   }
+  
+  package "docker-coredns/" {
+    file "Corefile" as coredns_config
+    file "hosts" as coredns_hosts
+  }
+}
+
+package "Runtime Architecture" {
+  node "HAProxy Reverse Proxy\n172.20.0.11:8443\n(Self-signed cert)" as proxy_runtime
+  node "VS Code Server\n172.20.0.12:8443\n(Let's Encrypt cert)" as vscode_runtime
+  node "CoreDNS\n172.20.0.10:53" as dns_runtime
+  node "LCARS Interface\n:8080" as lcars_runtime
+}
+
+' Configuration relationships
+compose --> proxy_docker : builds
+compose --> vsc_docker : builds
+compose --> certbot_docker : builds
+
+proxy_docker --> haproxy_config : HAProxy reverse proxy
+proxy_docker --> nginx_lcars : LCARS interface  
+proxy_docker --> lcars_html : Static UI
+proxy_docker --> lcars_css : LCARS styling
+
+vsc_docker --> cert_script : Extension installer
+vsc_docker --> extensions : Pre-installed extensions
+
+certbot_docker --> certbot_entry : Let's Encrypt generator
+
+compose --> dns_runtime : CoreDNS service
+coredns_config --> dns_runtime : DNS configuration
+coredns_hosts --> dns_runtime : Internal hosts
+
+' Runtime relationships
+proxy_runtime --> vscode_runtime : HTTPS reverse proxy\n(SSL termination)
+proxy_runtime --> lcars_runtime : Status interface
+dns_runtime --> vscode_runtime : Service discovery
+certbot_entry --> vscode_runtime : Let's Encrypt certificates
+
+note top of proxy_runtime
+**Reverse Proxy Features**
+- Self-signed certificate (external)
+- SSL termination + re-encryption
+- HAProxy backends to VSCode
+- Standard HTTPS access
+end note
+
+note top of vscode_runtime
+**VS Code Server**
+- Let's Encrypt certificate
+- HTTPS on port 8443
+- Pre-installed extensions
+- Internal network only
+end note
+
+note top of dns_runtime
+**Internal DNS**
+- *.vsagcrd.org resolution
+- Service discovery
+- Container communication
+end note
+
+note bottom of proxy_runtime
+**Port Configuration**
+:8443 - HTTPS (self-signed)
+:8080 - LCARS HTTP interface
+Internal :8081 - nginx backend
+end note
+
+@enduml
 }
 
 package "Repository Root" {

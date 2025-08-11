@@ -1,0 +1,84 @@
+# HAProxy Reverse Proxy Configuration
+# Terminates SSL and proxies to VSCode backend with Let's Encrypt certificates
+global
+    daemon
+    log stdout local0 info
+    
+    # SSL/TLS configuration for reverse proxy
+    ssl-default-bind-ciphers ECDHE+AESGCM:ECDHE+CHACHA20:RSA+AESGCM:RSA+SHA256
+    ssl-default-bind-options ssl-min-ver TLSv1.2 no-sslv3
+
+defaults
+    mode http
+    log global
+    option httplog
+    option dontlognull
+    timeout connect 10000ms
+    timeout client 50000ms
+    timeout server 50000ms
+
+# HTTPS frontend with self-signed certificate
+frontend https_frontend
+    bind *:8443 ssl crt /etc/haproxy/certs/proxy.pem
+    mode http
+    
+    # Direct proxy to VSCode for HTTPS requests
+    acl is_vscode_host hdr(host) -i code-dev.vsagcrd.org
+    acl is_vscode_host hdr(host) -i vscode.vsagcrd.org
+    acl is_vscode_host hdr(host) -i ide.vsagcrd.org
+    
+    # Route VSCode traffic
+    use_backend vscode_backend if is_vscode_host
+    
+    # Default to status page
+    default_backend proxy_status
+
+# HTTP frontend for LCARS (separate from reverse proxy)
+frontend http_frontend  
+    bind *:8080
+    mode http
+    default_backend lcars_backend
+
+# VSCode backend (reverse proxy with SSL termination)
+backend vscode_backend
+    mode http
+    option httpchk GET /healthz
+    
+    # Forward to VSCode with proper headers
+    http-request set-header X-Forwarded-Proto https
+    http-request set-header X-Forwarded-For %[src]
+    
+    # VSCode server with Let's Encrypt certificate
+    server vscode code-dev.vsagcrd.org:8443 ssl verify none check inter 5000ms
+    
+    # WebSocket support
+    timeout tunnel 3600000ms
+
+# LCARS interface backend  
+backend lcars_backend
+    mode http
+    # This will be handled by nginx in the same container
+    server lcars 127.0.0.1:8081 check
+
+# Status page backend
+backend proxy_status
+    mode http
+    timeout server 5000ms
+    
+    # Return status information
+    http-request return status 200 content-type "text/html" string "<!DOCTYPE html><html><head><title>VSCode Reverse Proxy</title><style>body{font-family:monospace;background:#000;color:#ff9900;padding:20px;}h1{color:#cc99ff;}</style></head><body><h1>VSAGCRD Reverse Proxy</h1><p>Status: <span style='color:#00ff00;'>OPERATIONAL</span></p><p>Access VSCode: <a href='https://steamdeck.fritz.box:8443' style='color:#00ccff;'>https://steamdeck.fritz.box:8443</a></p><p>LCARS Interface: <a href='http://steamdeck.fritz.box:8080' style='color:#00ccff;'>http://steamdeck.fritz.box:8080</a></p></body></html>"
+    
+# Backend for proxy status and health checks
+backend proxy_status
+    mode http
+    timeout server 5000ms
+    
+    # Return status information for non-CONNECT requests
+    http-request return status 200 content-type "text/html" string "<!DOCTYPE html><html><head><title>HAProxy Forward Proxy</title><style>body{font-family:monospace;background:#000;color:#ff9900;padding:20px;}h1{color:#cc99ff;}</style></head><body><h1>VSAGCRD Forward Proxy Active</h1><p>Status: <span style='color:#00ff00;'>OPERATIONAL</span></p><p>HTTPS tunneling available on port 8443</p><p>LCARS interface: <a href='http://steamdeck.fritz.box:8080' style='color:#00ccff;'>http://steamdeck.fritz.box:8080</a></p><p>Configure your browser to use this proxy:</p><ul><li>HTTP Proxy: steamdeck.fritz.box:8443</li><li>HTTPS Proxy: steamdeck.fritz.box:8443</li><li>SSL: Yes (accept self-signed certificate)</li></ul><p>Direct VSCode Access: <a href='https://code-dev.vsagcrd.org:8443' style='color:#00ccff;'>https://code-dev.vsagcrd.org:8443</a></p></body></html>"
+
+# Statistics interface (optional - can be enabled for monitoring)
+# listen stats
+#     bind *:8404
+#     stats enable
+#     stats uri /stats
+#     stats refresh 5s

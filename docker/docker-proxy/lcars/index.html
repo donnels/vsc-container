@@ -282,12 +282,11 @@
       }
       
       if (protocol === 'https:') {
-        // Check if it's likely a self-signed cert (localhost, IP, or dev domains)
+        // Check if it's likely a self-signed cert (localhost, IP, or local domains)
         if (hostname === 'localhost' || 
             hostname === '127.0.0.1' || 
             hostname.match(/^\d+\.\d+\.\d+\.\d+$/) || 
             hostname.endsWith('.local') ||
-            hostname.endsWith('.dev') ||
             hostname.endsWith('.test')) {
           updateStatusButton('status-encryption', 'https-self-signed');
         } else {

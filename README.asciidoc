@@ -3,52 +3,118 @@
 :sectnums:
 :sectnumlevels: 5
 
-A production-ready containerized VS Code server environment with SSL certificate support and reverse proxy architecture for secure remote development.
+A production-ready containerized VS Code server environment with HAProxy reverse proxy architecture for secure remote development.
 
-image::images/config-overview.png[Project Structure, 800, 600]
+image::images/config-overview.png[Reverse Proxy Architecture, 800, 600]
+
+== Reverse Proxy Architecture
+
+The system uses HAProxy as a reverse proxy with SSL termination:
+
+* *proxy.vsagcrd.org* (172.20.0.11:8443) - HAProxy reverse proxy with self-signed certificate
+* *code-dev.vsagcrd.org* (172.20.0.12:8443) - VS Code Server with Let's Encrypt certificate
+* *coredns.vsagcrd.org* (172.20.0.10:53) - Internal DNS resolver
+* *certbot.vsagcrd.org* (172.20.0.13) - Certificate management (run-once)
+
+This architecture provides:
+
+* **SSL termination** with self-signed certificate for external access
+* **Let's Encrypt certificates** for backend VSCode security
+* **Self-signed certificate** on forward proxy (no Let's Encrypt rate limit concerns)
+* **HTTPS tunneling** preserves original SSL certificates through the proxy
+* **WebSocket compatibility** without SSL termination complexity
+* **Enterprise-grade HAProxy** for robust proxy functionality
+
+=== External Access Flow
+
+All external access flows through the HAProxy forward proxy:
+
+----
+Meta Quest 3 → Fritz.Box → HAProxy Forward Proxy:8443 → VSCode:8443
+    ↑                           ↑                           ↑
+Self-signed cert           HTTPS tunnel              Let's Encrypt cert
+(accept once)            (transparent)              (end-to-end secure)
+----
+
+== Architectural Decisions
+
+=== Forward Proxy vs Reverse Proxy
+
+This project uses a **forward proxy architecture** for the following reasons:
+
+**SSL Simplicity**::
+- **Self-signed certificate** on proxy eliminates Let's Encrypt rate limit concerns
+- **No certificate sharing** between containers - each service manages its own
+- **No SSL termination complexity** - proxy tunnels encrypted traffic transparently
+- **Preserved end-to-end encryption** with real Let's Encrypt certificates
+
+**WebSocket Compatibility**::
+- **Direct WebSocket tunneling** without SSL re-encryption complications
+- **No proxy SSL verification** issues that cause WebSocket connection failures
+- **Transparent protocol handling** for all HTTPS traffic
+
+**Development Simplicity**::
+- **Single certificate warning** on initial proxy connection (user accepts once)
+- **No Fritz.Box DNS changes** required - uses standard proxy configuration
+- **Standard browser proxy settings** - works with any HTTPS-capable client
+
+== Quick Start - Reverse Proxy Deployment
+
+=== Step 1: Generate Let's Encrypt Certificates (VSCode only)
+
+----
+# Configure Cloudflare credentials
+cp docker/docker-certbot/.env.template docker/docker-certbot/.env
+# Edit .env file with your Cloudflare API token and domains
+
+# Generate VSCode certificate only
+cd docker
+podman-compose --profile tools up cert-generator
+----
+
+=== Step 2: Start Reverse Proxy and VSCode
+
+----
+# Start all services (proxy with self-signed cert + VSCode with LE cert)
+cd docker
+podman-compose up -d
+----
+
+=== Step 3: Access VSCode Directly
+
+1. **Accept Self-Signed Certificate**: Navigate to `https://steamdeck.fritz.box:8443` and accept the certificate warning (one-time only)
+
+2. **Access VSCode**: Direct HTTPS access to `https://steamdeck.fritz.box:8443` - no proxy configuration needed
+
+3. **LCARS Interface**: Status interface at `http://steamdeck.fritz.box:8080`
+
+=== Architecture Benefits
+
+**No Let's Encrypt Rate Limits**::
+- Forward proxy uses self-signed certificate (unlimited)
+- Only VSCode service uses Let's Encrypt certificate
+- Significant reduction in certificate requests
+
+**Simplified SSL Management**::
+- No certificate sharing between containers
+- No complex nginx SSL upstream configuration
+- No WebSocket SSL proxy complications
+
+**End-to-End Security**::
+- Browser → Proxy: HTTPS with self-signed certificate
+- Proxy → VSCode: HTTPS tunnel with Let's Encrypt certificate
+- Full encryption maintained throughout the connection
 
 == Service Discovery and Networking
 
 The system uses CoreDNS for internal service discovery within the `vsagcrd.org` domain:
 
-* *proxy.vsagcrd.org* (172.20.0.11) - Nginx reverse proxy with SSL termination
-* *vscode.vsagcrd.org* (172.20.0.12) - VS Code Server application
-* *coredns.vsagcrd.org* (172.20.0.10) - Internal DNS resolver
+* *forward-proxy.vsagcrd.org* (172.20.0.11:8443) - HAProxy forward proxy with self-signed certificate
+* *code-dev.vsagcrd.org* (172.20.0.12:8443) - VS Code Server with Let's Encrypt certificate
+* *coredns.vsagcrd.org* (172.20.0.10:53) - Internal DNS resolver
 * *certbot.vsagcrd.org* (172.20.0.13) - Certificate management (run-once)
 
-This architecture provides:
-
-* Consistent internal hostname resolution
-* Simplified container communication
-* Production-ready network segregation
-* Automatic service discovery
-
-=== External Access
-
-All external access flows through the proxy at `your-domain.vsagcrd.org` (standard HTTPS port 443):
-
-----
-Intranet → your-domain.vsagcrd.org:443 → proxy.vsagcrd.org → vscode.vsagcrd.org:8443
-----
-
-== Architectural Decisions
-
-=== Proxy-First Architecture
-
-This project exclusively uses a reverse proxy architecture for the following reasons:
-
-**DNS Simplicity**::
-- No need to modify local DNS or hosts files
-- Works seamlessly with public domains
-- Avoids port-specific access patterns that confuse users
-
-**Production Readiness**::
-- Standard HTTPS on port 443 (not custom ports like 8443)
-- Proper SSL termination at the edge
-- HTTP to HTTPS automatic redirection
-
-**Security Benefits**::
-- SSL/TLS handled by dedicated proxy layer
+**LCARS Status Interface**: Available at `http://localhost:8080` for proxy status and system information.
 - Security headers automatically applied
 - No direct container exposure to public internet
 

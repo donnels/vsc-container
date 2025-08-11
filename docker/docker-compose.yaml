@@ -18,15 +18,16 @@ services:
     env_file:
       - ./docker-vsc/.env
     environment:
-      - CERT_HOSTNAMES=${CERT_HOSTNAMES:-vscode.vsagcrd.org localhost 127.0.0.1}
+      - CERT_HOSTNAMES=${CERT_HOSTNAMES:-code-dev.vsagcrd.org localhost 127.0.0.1}
       - VSCODE_CERT_NAME=${VSCODE_CERT_NAME:-vscode}
+      - PASSWORD=${PASSWORD:-vscode}
     volumes:
       - ../:/workspace
       - ../data:/data
       - code-server-config:/home/coder/.config/code-server
       - code-server-data:/home/coder/.local/share/code-server
       - code-server-code:/home/coder/code
-      - cert-output:/etc/letsencrypt/live:ro
+      - cert-output:/etc/letsencrypt:ro
     command: ["/usr/bin/code-server", "/home/coder/code", "--bind-addr", "0.0.0.0:8443", "--auth", "password", "--cert", "/etc/letsencrypt/live/${VSCODE_CERT_NAME:-vscode}/fullchain.pem", "--cert-key", "/etc/letsencrypt/live/${VSCODE_CERT_NAME:-vscode}/privkey.pem"]
     restart: unless-stopped
     dns:
@@ -36,6 +37,8 @@ services:
         ipv4_address: 172.20.0.12
         aliases:
           - vscode.vsagcrd.org
+          - code-dev.vsagcrd.org
+          - ide.vsagcrd.org
     depends_on:
       - coredns
 
@@ -46,7 +49,7 @@ services:
     env_file:
       - ./docker-certbot/.env
     volumes:
-      - cert-output:/etc/letsencrypt/live
+      - cert-output:/etc/letsencrypt
     profiles:
       - tools
     dns:
@@ -59,6 +62,8 @@ services:
     depends_on:
       - coredns
 
+  # HAProxy reverse proxy to VSCode (simpler than forward proxy)
+  # Serves LCARS interface and proxies HTTPS to VSCode with Let's Encrypt
   proxy:
     build:
       context: ./docker-proxy
@@ -66,11 +71,9 @@ services:
     env_file:
       - ./docker-proxy/.env
     ports:
-      - "8443:443"
-      - "8080:80"
-      - "8081:8080"
-    volumes:
-      - cert-output:/etc/nginx/certs:ro
+      - "8443:8443"  # HTTPS proxy to VSCode
+      - "8080:8080"  # LCARS interface
+    # No Let's Encrypt volume needed - proxy uses self-signed certificate
     depends_on:
       - code-server
       - coredns
@@ -82,6 +85,7 @@ services:
         ipv4_address: 172.20.0.11
         aliases:
           - proxy.vsagcrd.org
+          - forward-proxy.vsagcrd.org
 
 volumes:
   code-server-config:
