@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proxy Configuration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .proxy-info {
+            background: #e8f4f8;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .step {
+            margin: 15px 0;
+            padding: 10px;
+            border-left: 4px solid #007acc;
+            background: #f8f9fa;
+        }
+        .test-link {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .test-link a {
+            background: #007acc;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .test-link a:hover {
+            background: #005999;
+        }
+        .copy-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .copy-btn {
+            background: #007acc;
+            border: none;
+            color: white;
+            padding: 5px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        .copy-btn:hover {
+            background: #005999;
+        }
+        .copy-btn:active {
+            background: #004477;
+        }
+        .copy-success {
+            background: #28a745 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SteamDeck Development Environment</h1>
+        
+        <div class="proxy-info">
+            <h2>Proxy Configuration</h2>
+            <p><strong>Option 1 - PAC File (Recommended):</strong></p>
+            <div class="copy-container">
+                <code>http://steamdeck.fritz.box:8080/proxy.pac</code>
+                <button class="copy-btn" onclick="copyToClipboard('http://steamdeck.fritz.box:8080/proxy.pac')" title="Copy to clipboard">📋</button>
+            </div>
+            <p><a href="/proxy.pac" target="_blank">📄 Download PAC File</a></p>
+            
+            <p><strong>Option 2 - Manual Proxy:</strong></p>
+            <div class="copy-container">
+                <code>steamdeck.fritz.box:8443</code>
+                <button class="copy-btn" onclick="copyToClipboard('steamdeck.fritz.box:8443')" title="Copy to clipboard">📋</button>
+            </div>
+            <p><strong>Type:</strong> Forward Proxy (CONNECT method)</p>
+        </div>
+
+        <h2>Setup Instructions</h2>
+        <div class="step">
+            <strong>Step 1:</strong> Configure your Meta Quest 3 proxy settings:<br>
+            <div class="copy-container">
+                <strong>PAC URL:</strong> <code>http://steamdeck.fritz.box:8080/proxy.pac</code>
+                <button class="copy-btn" onclick="copyToClipboard('http://steamdeck.fritz.box:8080/proxy.pac')" title="Copy PAC URL">📋</button>
+            </div>
+            <em>OR manually set proxy to: 
+                <span class="copy-container" style="display: inline-flex; vertical-align: middle;">
+                    steamdeck.fritz.box:8443
+                    <button class="copy-btn" onclick="copyToClipboard('steamdeck.fritz.box:8443')" title="Copy proxy address">📋</button>
+                </span>
+            </em>
+        </div>
+        <div class="step">
+            <strong>Step 2:</strong> Test the connection by clicking the link below
+        </div>
+        <div class="step">
+            <strong>Step 3:</strong> Once connected, access VSCode from the menu
+        </div>
+
+        <div class="test-link">
+            <a href="https://www-lcars.vsagcrd.org" target="_blank">Test HTTPS Connection</a>
+        </div>
+
+        <details style="margin: 30px 0; border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
+            <summary style="cursor: pointer; font-weight: bold; margin-bottom: 10px;">📄 View PAC File Content</summary>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 3px; margin-top: 10px;">
+                <pre style="margin: 0; font-family: 'Courier New', monospace; font-size: 12px; overflow-x: auto;"><code>function FindProxyForURL(url, host) {
+    // Forward proxy configuration for SteamDeck development environment
+    
+    // Routes for internal LCARS services - use forward proxy
+    if (dnsDomainIs(host, ".vsagcrd.org")) {
+        return "PROXY steamdeck.fritz.box:8443";
+    }
+    
+    // All other traffic - direct connection
+    return "DIRECT";
+}</code></pre>
+            </div>
+            <p style="margin-top: 10px; font-size: 14px; color: #666;">
+                <strong>How it works:</strong><br>
+                • <code>*.vsagcrd.org</code> domains → Forward proxy (steamdeck.fritz.box:8443)<br>
+                • All other websites → Direct connection (no proxy)
+            </p>
+        </details>
+
+        <p style="text-align: center; color: #666; margin-top: 40px;">
+            <small>Make sure your proxy is configured before clicking the test link</small>
+        </p>
+    </div>
+
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                // Find the button that was clicked
+                const button = event.target;
+                const originalText = button.textContent;
+                
+                // Show success feedback
+                button.textContent = '✓';
+                button.classList.add('copy-success');
+                
+                // Reset after 2 seconds
+                setTimeout(function() {
+                    button.textContent = originalText;
+                    button.classList.remove('copy-success');
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Failed to copy text: ', err);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                // Show success feedback
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = '✓';
+                button.classList.add('copy-success');
+                
+                setTimeout(function() {
+                    button.textContent = originalText;
+                    button.classList.remove('copy-success');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

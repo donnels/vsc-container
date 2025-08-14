@@ -1,0 +1,42 @@
+:ARC-ID: 001
+:ARC-TITLE: use of forward proxy
+:ARC-TOPIC: network
+:ARC-STATUS: accepted
+
+[#ARCID-{arc-id}]
+= {arc-id} - {arc-title}
+This decision is part of the {arc-topic} architecture.
+
+== Context
+
+== Problem Statement / Motivation
+
+== Alternatives Considered
+
+=== Option
+
+.Pro
+*item
+*item
+
+.Con
+*item
+*item
+
+=== Option
+
+.Pro
+*item
+*item
+
+.Con
+*item
+*item
+
+== Decision Outcome
+
+=== Justification
+
+=== Consequences
+
+=== Derived / Related Decisions

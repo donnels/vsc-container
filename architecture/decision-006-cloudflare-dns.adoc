@@ -1,0 +1,95 @@
+:ARC-ID: 006
+:ARC-TITLE: Cloudflare DNS Provider for Certificate Management
+:ARC-TOPIC: infrastructure
+:ARC-STATUS: accepted
+
+[#ARCID-{arc-id}]
+= {arc-id} - {arc-topic} - {arc-title}
+This decision is part of the {arc-topic} architecture.
+
+== Context
+
+The warp bubble environment requires automated SSL certificate generation for internal services using Let's Encrypt. Since services operate on private networks (172.20.0.0/16), HTTP-01 challenge is not feasible, requiring DNS-01 challenge for certificate validation. A reliable DNS provider with API access is essential for automated certificate management.
+
+== Problem Statement / Motivation
+
+Let's Encrypt DNS-01 challenge requires programmatic control over DNS records to prove domain ownership. The mobile nature of the warp bubble environment makes traditional HTTP-01 validation impossible. A cost-effective, reliable DNS provider with robust API support is needed for automated certificate lifecycle management.
+
+== Alternatives Considered
+
+=== Route 53 (AWS)
+
+.Pro
+* Excellent API documentation
+* High reliability and performance
+* Comprehensive DNS management features
+* Strong integration with AWS ecosystem
+
+.Con
+* Higher cost structure
+* Requires AWS account and billing setup
+* More complex pricing model
+* Overkill for simple DNS needs
+
+=== Cloudflare DNS
+
+.Pro
+* Free tier available for basic DNS
+* Excellent API with comprehensive documentation
+* Native Let's Encrypt integration and support
+* Low cost for additional features
+* High performance global DNS network
+* Simple API token authentication
+* Wide certbot plugin support
+
+.Con
+* Requires domain transfer to Cloudflare nameservers
+* Free tier has some feature limitations
+* Dependency on single provider
+
+=== Self-Hosted DNS (BIND/PowerDNS)
+
+.Pro
+* Complete control over DNS infrastructure
+* No external dependencies
+* No recurring costs
+
+.Con
+* Significant maintenance overhead
+* Requires DNS expertise
+* Complex API development needed
+* No Let's Encrypt integration
+* Single point of failure
+* Security management complexity
+
+== Decision Outcome
+
+We will use Cloudflare as the DNS provider for vsagcrd.org domain management, leveraging their API for automated Let's Encrypt certificate generation via DNS-01 challenge.
+
+=== Justification
+
+Cloudflare provides the optimal balance of cost-effectiveness, reliability, and API functionality needed for automated certificate management. Their native Let's Encrypt compatibility and comprehensive certbot plugin support make certificate automation straightforward. The free tier covers basic DNS needs while maintaining high performance and reliability.
+
+=== Consequences
+
+* Cloudflare API token required for certificate automation
+* Dependency on Cloudflare service availability
+* Simplified certificate management automation
+* Low operational cost for DNS services
+* Access to additional Cloudflare features (CDN, security)
+** not required for this project
+** potential for cloudflared tunnel integration in the future
+
+=== Implementation Requirements
+
+* Cloudflare account setup and domain transfer
+* API token generation with Zone:Read and DNS:Edit permissions
+* Certbot cloudflare plugin configuration
+* DNS record management through Cloudflare dashboard or API
+* Backup DNS configuration documentation
+
+=== Derived / Related Decisions
+
+* HTTPS certificates required (<<ARCID-001>>)
+* DNS infrastructure within warp bubble (<<ARCID-003>>)
+* Centralized environment configuration (<<ARCID-005>>)

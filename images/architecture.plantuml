@@ -29,14 +29,14 @@ group initial test tunnel to website with Let's Encrypt cert and menu
     note over headset
         User clicks LCARS link from the landing page
     end note
-    headset -> steamdeck.haproxy: CONNECT www.vsagcrd.org:443
+    headset -> steamdeck.haproxy: CONNECT www-lcars.vsagcrd.org:443
     note right
         HA-proxy is a FORWARD proxy
         The client headset is requesting an Internal steamdeck website as an initial test
         the page will provide a link to the VSCode container
         the internal nginx HAS a Let's Encrypt cert
     end note
-    steamdeck.haproxy -> steamdeck.dns: resolve www.vsagcrd.org
+    steamdeck.haproxy -> steamdeck.dns: resolve www-lcars.vsagcrd.org
     note right
         the DNS is used the first time then cached results are used
     end note
@@ -66,12 +66,12 @@ group access VSCode container
     note over headset
         User clicks VSCode link from the LCARS page
     end note
-    headset -> steamdeck.haproxy: CONNECT vsc.vsagcrd.org:443
+    headset -> steamdeck.haproxy: CONNECT vsc-lcars.vsagcrd.org:443
     note right
         HAProxy forward proxy for VSCode container
         Different hostname for VSCode service
     end note
-    steamdeck.haproxy -> steamdeck.dns: resolve vsc.vsagcrd.org
+    steamdeck.haproxy -> steamdeck.dns: resolve vsc-lcars.vsagcrd.org
     note right
         DNS resolves to VSCode container IP
     end note

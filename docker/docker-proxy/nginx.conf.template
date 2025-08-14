@@ -1,9 +1,0 @@
-# This file is deprecated - HAProxy configuration moved to haproxy.cfg.template
-# This file is kept for reference only and should be removed in future cleanup
-# 
-# Current architecture uses:
-# - haproxy.cfg.template: Forward proxy with HTTPS tunneling
-# - nginx-temp.conf: LCARS interface (static files served by nginx)
-#
-# The forward proxy architecture eliminates the need for nginx SSL configuration
-# as HAProxy handles HTTPS tunneling transparently without SSL termination.

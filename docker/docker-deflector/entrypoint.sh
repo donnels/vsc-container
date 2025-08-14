@@ -47,8 +47,17 @@ generate_cert() {
     $DOMAINS_ARG
 }
 
+# Generate web server certificate (for nginx HTTPS menu)
+if [ "${GENERATE_WEB_CERT:-true}" = "true" ]; then
+  if [ -n "$WEB_DOMAINS" ]; then
+    generate_cert "$WEB_DOMAINS" "$WEB_CERT_NAME"
+  else
+    echo "WEB_DOMAINS not set, skipping web certificate"
+  fi
+fi
+
 # Generate proxy certificate
-if [ "${GENERATE_PROXY_CERT:-true}" = "true" ]; then
+if [ "${GENERATE_PROXY_CERT:-false}" = "true" ]; then
   if [ -n "$PROXY_DOMAINS" ]; then
     generate_cert "$PROXY_DOMAINS" "$PROXY_CERT_NAME"
   else

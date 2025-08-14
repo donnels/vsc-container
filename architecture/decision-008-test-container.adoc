@@ -1,0 +1,114 @@
+:ARC-ID: 008
+:ARC-TITLE: Test Container for Multi-Device Compatibility
+:ARC-TOPIC: testing
+:ARC-STATUS: accepted
+
+[#ARCID-{arc-id}]
+= {arc-id} - {arc-topic} - {arc-title}
+This decision is part of the {arc-topic} architecture.
+
+== Context
+
+The warp bubble environment is designed to support multiple device types including VR headsets, Apple devices (iOS/macOS), Linux systems, Android tablets, and potentially mobile phones. Each device type has different capabilities regarding HTTPS support, network configuration, browser features, and proxy compatibility. Testing is required to ensure consistent functionality across the diverse device ecosystem.
+
+== Problem Statement / Motivation
+
+Different devices and platforms have varying support for:
+- HTTPS certificate handling and trust chains
+- Proxy configuration methods (PAC files, manual settings)
+- Network discovery and connectivity features
+- Browser capabilities and security restrictions
+- VR-specific interface rendering and interaction
+
+Without systematic testing across device types, users may encounter compatibility issues, broken functionality, or poor user experience on their specific devices.
+
+== Alternatives Considered
+
+=== Manual Testing on Each Device
+
+.Pro
+* Real-world testing conditions
+* Authentic user experience validation
+* No additional infrastructure needed
+
+.Con
+* Time-consuming and repetitive
+* Inconsistent test environments
+* Difficult to reproduce issues
+* No automated regression testing
+* Limited scalability for multiple configurations
+
+=== Dedicated Test Container Environment
+
+.Pro
+* Isolated testing environment
+* Consistent test conditions
+* Automated capability detection via web interface
+* Easy to reproduce and debug issues
+* Can provide both HTTP and HTTPS test endpoints
+* Real-time device capability reporting
+* Accessible from inside and outside warp bubble
+
+.Con
+* Additional container infrastructure required
+* May not perfectly replicate all device-specific behaviors
+* Requires test script development and maintenance
+
+== Decision Outcome
+
+We will implement a dedicated test container within the warp bubble environment that provides web-based capability detection pages accessible via both HTTP and HTTPS from devices inside and outside the warp bubble network.
+
+=== Justification
+
+A test container with web-based capability detection provides automated device analysis without requiring manual testing procedures. By offering both HTTP and HTTPS test endpoints accessible from inside and outside the warp bubble, devices can automatically report their capabilities, limitations, and compatibility status. This approach enables real-time validation of certificate handling, proxy support, and browser features across the diverse device ecosystem.
+
+=== Consequences
+
+* Test container serving web-based capability detection pages
+** Named VALIDATRIX
+* HTTP and HTTPS endpoints for comprehensive protocol testing
+* Automated device capability reporting and analysis
+* Real-time browser feature detection (WebSocket, service workers, etc.)
+* Certificate trust chain validation testing
+* Proxy configuration compatibility assessment
+* Network connectivity testing from multiple access points
+* Device-specific limitation documentation
+* Capability matrix generation for supported devices
+
+=== Test Coverage Areas
+
+* **Apple Devices**: Safari certificate handling, iOS proxy settings, macOS network configuration
+* **Linux Systems**: Firefox/Chrome certificate stores, network manager proxy integration
+* **Android Tablets**: Chrome mobile proxy support, certificate installation procedures
+* **VR Headsets**: WebXR browser capabilities, LCARS interface rendering
+* **Mobile Phones**: Limited support validation, fallback interface testing
+
+=== Testing Scenarios
+
+* HTTPS certificate validation and trust chain verification
+* Proxy auto-configuration (PAC) file functionality
+* Manual proxy configuration procedures
+* Network discovery and connectivity testing
+* LCARS interface rendering across different screen sizes
+* Browser security feature compatibility
+* WebSocket and service worker functionality
+
+=== Implementation Requirements
+
+* Web server providing capability detection pages on both HTTP and HTTPS
+* JavaScript-based browser feature detection and reporting
+* Device capability analysis and results display interface
+* Certificate validation testing via HTTPS endpoints
+* Proxy connectivity testing from multiple network positions
+* User-agent and device characteristic detection
+* Real-time capability reporting and logging
+* Results export and documentation generation
+* Integration with existing warp bubble network infrastructure
+* External access points for testing outside warp bubble connectivity
+
+=== Derived / Related Decisions
+
+* HTTPS certificates required (<<ARCID-001>>)
+* Forward tunneling proxy implementation (<<ARCID-002>>)
+* Landing zone server for proxy configuration (<<ARCID-004>>)
+* LCARS interface design for VR environment (<<ARCID-007>>)

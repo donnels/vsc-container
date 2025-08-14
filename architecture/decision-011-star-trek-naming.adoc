@@ -1,0 +1,75 @@
+= ARCID-011: Star Trek Themed Service Naming Convention
+:toc: right
+
+== Status
+Accepted
+
+== Context
+The warp bubble development environment initially used generic technical names for services (coredns, squid, code-server, certbot, etc.). While functionally descriptive, these names lack personality and can be difficult to remember, especially when managing multiple interconnected services. In the context of the LCARS interface design (<<ARCID-007>>) and the Star Trek themed aesthetic, there's an opportunity to create a more cohesive and memorable naming system.
+
+Technical service names often become abstract identifiers that don't convey the actual role or relationship of components within the system. This can lead to:
+
+* Cognitive overhead when managing services
+* Difficulty onboarding new team members
+* Lack of intuitive understanding of service relationships
+* Missed opportunities for creating a more engaging development experience
+
+The Star Trek universe provides a rich vocabulary for describing ship systems and operations that maps well to development infrastructure concepts.
+
+== Decision
+We will adopt a comprehensive Star Trek themed naming convention for all services, directories, and DNS names within the warp bubble environment:
+
+=== Service Mapping
+* **locator-matrix** (CoreDNS): The ship's navigation and positioning system, responsible for locating and directing traffic to other services
+* **transporter** (Squid Proxy): Safely beams requests through hostile network territory to their destinations
+* **engineering-console** (VS Code Server): The primary development workstation where engineering work is performed
+* **deflector** (Certbot): Deflector array generates protective shields (certificates) against security threats
+* **shuttlebay** (Landing Page): The docking bay where visitors first arrive and receive directions
+* **console** (LCARS Interface): The main bridge interface for system control and monitoring
+* **optical-data-network** (MQTT): The ship's high-speed communication network for inter-system messaging
+* **warpbubble** (Docker Network): The protective field that contains and isolates all ship systems
+
+=== Benefits
+* **Memorability**: Star Trek names are more distinctive and easier to remember than generic technical terms
+* **Intuitive Relationships**: The metaphors help understand service interactions (transporter moves things, deflector protects, etc.)
+* **Consistent Theme**: Aligns with LCARS interface design for a cohesive user experience
+* **Playful Engagement**: Makes development work more enjoyable and engaging
+* **Functional Description**: Each name actually describes the service's role in an accessible way
+* **Team Building**: Shared cultural reference creates common vocabulary and team identity
+
+=== Implementation
+* All container names in docker-compose.yaml updated to Star Trek themed names
+* Directory structure renamed to match container names
+* Environment variables follow WARPBUBBLE_* pattern
+* DNS aliases include both functional and themed names for compatibility
+* Documentation updated to reflect new naming convention
+
+== Consequences
+
+=== Positive
+* Increased developer engagement and enjoyment
+* More intuitive service identification and relationships
+* Consistent thematic experience across all interfaces
+* Easier onboarding for team members familiar with Star Trek
+* Natural conversation vocabulary for discussing system components
+* Better alignment with LCARS interface design philosophy
+
+=== Negative
+* May confuse developers unfamiliar with Star Trek references
+* Requires documentation to map themed names to underlying technologies
+* Some resistance to change from traditional naming conventions
+* Need to maintain both themed and technical understanding
+
+=== Neutral
+* No impact on service functionality or performance
+* Gradual adoption possible through DNS aliases
+* Can coexist with technical documentation
+
+== Compliance
+This decision enhances:
+* <<ARCID-007>>: LCARS Interface Design - creates consistent thematic experience
+* <<ARCID-005>>: Centralized Configuration - environment variables follow unified WARPBUBBLE_ pattern
+* <<ARCID-003>>: DNS Infrastructure - themed aliases improve service discovery
+
+== Notes
+The naming convention maintains technical accuracy while adding personality. Each name was chosen to reflect the actual function of the service in a way that's both memorable and descriptive. The Star Trek metaphor is internally consistent and helps developers think about the system as an integrated whole rather than a collection of disparate components.

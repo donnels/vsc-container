@@ -1,0 +1,17 @@
+# CoreDNS hosts file for vsagcrd.org internal network
+# Format: IP_address canonical_hostname [aliases...]
+
+# DNS server
+172.20.0.10 coredns-lcars.vsagcrd.org dns-lcars.vsagcrd.org
+
+# HAProxy forward proxy
+172.20.0.11 proxy-lcars.vsagcrd.org forward-proxy-lcars.vsagcrd.org
+
+# VS Code server - Updated for new alias
+172.20.0.12 vsc-lcars.vsagcrd.org vscode-lcars.vsagcrd.org code-dev-lcars.vsagcrd.org ide-lcars.vsagcrd.org
+
+# Certificate generator
+172.20.0.13 certbot-lcars.vsagcrd.org cert-generator-lcars.vsagcrd.org
+
+# Nginx web server (landing page and HTTPS menu)
+172.20.0.14 www-lcars.vsagcrd.org web-lcars.vsagcrd.org

@@ -1,101 +1,225 @@
-version: '3.8'
+
 services:
-  coredns:
-    image: docker.io/coredns/coredns:latest
+  locator-matrix:
+    build:
+      context: ./docker-locator-matrix
+      dockerfile: Dockerfile
     command: -conf /etc/coredns/Corefile
-    volumes:
-      - ./docker-coredns/Corefile:/etc/coredns/Corefile:ro
-      - ./docker-coredns/hosts:/etc/coredns/hosts:ro
+    environment:
+      - WARPBUBBLE_IP_LOCATOR_MATRIX=${WARPBUBBLE_IP_LOCATOR_MATRIX}
+      - WARPBUBBLE_IP_TRANSPORTER=${WARPBUBBLE_IP_TRANSPORTER}
+      - WARPBUBBLE_IP_ENGINEERING_CONSOLE=${WARPBUBBLE_IP_ENGINEERING_CONSOLE}
+      - WARPBUBBLE_IP_DEFLECTOR=${WARPBUBBLE_IP_DEFLECTOR}
+      - WARPBUBBLE_IP_SHUTTLEBAY=${WARPBUBBLE_IP_SHUTTLEBAY}
+      - WARPBUBBLE_IP_CONSOLE=${WARPBUBBLE_IP_CONSOLE}
+      - WARPBUBBLE_IP_TRANSPORTER_TEST=${WARPBUBBLE_IP_TRANSPORTER_TEST}
+      - WARPBUBBLE_IP_OPTICAL_DATA_NETWORK=${WARPBUBBLE_IP_OPTICAL_DATA_NETWORK}
     networks:
-      internal:
-        ipv4_address: 172.20.0.10
+      warpbubble:
+        ipv4_address: ${WARPBUBBLE_IP_LOCATOR_MATRIX}
     restart: unless-stopped
 
-  code-server:
+  engineering-console:
     build:
-      context: ./docker-vsc
+      context: ./docker-engineering-console
       dockerfile: Dockerfile
-    env_file:
-      - ./docker-vsc/.env
     environment:
       - CERT_HOSTNAMES=${CERT_HOSTNAMES:-code-dev.vsagcrd.org localhost 127.0.0.1}
       - VSCODE_CERT_NAME=${VSCODE_CERT_NAME:-vscode}
       - PASSWORD=${PASSWORD:-vscode}
+      - CODE_SERVER_PASSWORD_HASH=${CODE_SERVER_PASSWORD_HASH}
+      - CODE_SERVER_AUTH_MESSAGE=${CODE_SERVER_AUTH_MESSAGE}
+      - VIRTUAL_HOST=${VIRTUAL_HOST}
+      - NGINX_LOG_PATH=${NGINX_LOG_PATH}
     volumes:
       - ../:/workspace
       - ../data:/data
-      - code-server-config:/home/coder/.config/code-server
-      - code-server-data:/home/coder/.local/share/code-server
-      - code-server-code:/home/coder/code
+      - engineering-console-config:/home/coder/.config/code-server
+      - engineering-console-data:/home/coder/.local/share/code-server
+      - engineering-console-code:/home/coder/code
       - cert-output:/etc/letsencrypt:ro
     command: ["/usr/bin/code-server", "/home/coder/code", "--bind-addr", "0.0.0.0:8443", "--auth", "password", "--cert", "/etc/letsencrypt/live/${VSCODE_CERT_NAME:-vscode}/fullchain.pem", "--cert-key", "/etc/letsencrypt/live/${VSCODE_CERT_NAME:-vscode}/privkey.pem"]
     restart: unless-stopped
     dns:
-      - 172.20.0.10
+      - ${WARPBUBBLE_DNS_SERVER}
     networks:
-      internal:
-        ipv4_address: 172.20.0.12
+      warpbubble:
+        ipv4_address: ${WARPBUBBLE_IP_ENGINEERING_CONSOLE}
         aliases:
-          - vscode.vsagcrd.org
-          - code-dev.vsagcrd.org
-          - ide.vsagcrd.org
+          - engineering-console.warp.vsagcrd.org
+          - vsc-lcars.vsagcrd.org
+          - vscode-lcars.vsagcrd.org
+          - code-dev-lcars.vsagcrd.org
+          - ide-lcars.vsagcrd.org
     depends_on:
-      - coredns
+      - locator-matrix
 
-  cert-generator:
+  deflector:
     build:
-      context: ./docker-certbot
+      context: ./docker-deflector
       dockerfile: Dockerfile
-    env_file:
-      - ./docker-certbot/.env
+    environment:
+      - DOMAIN=${DOMAIN}
+      - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+      - WEB_DOMAINS=${WEB_DOMAINS}
+      - WEB_CERT_NAME=${WEB_CERT_NAME}
+      - VSCODE_DOMAINS=${VSCODE_DOMAINS}
+      - VSCODE_CERT_NAME=${VSCODE_CERT_NAME}
+      - CONSOLE_DOMAINS=${CONSOLE_DOMAINS}
+      - CONSOLE_CERT_NAME=${CONSOLE_CERT_NAME}
+      - GENERATE_WEB_CERT=${GENERATE_WEB_CERT}
+      - GENERATE_VSCODE_CERT=${GENERATE_VSCODE_CERT}
+      - GENERATE_CONSOLE_CERT=${GENERATE_CONSOLE_CERT}
+      - GENERATE_PROXY_CERT=${GENERATE_PROXY_CERT}
     volumes:
       - cert-output:/etc/letsencrypt
     profiles:
       - tools
     dns:
-      - 172.20.0.10
+      - ${WARPBUBBLE_DNS_SERVER}
     networks:
-      internal:
-        ipv4_address: 172.20.0.13
+      warpbubble:
+        ipv4_address: ${WARPBUBBLE_IP_DEFLECTOR}
         aliases:
-          - certbot.vsagcrd.org
+          - deflector.warp.vsagcrd.org
+          - deflector-lcars.vsagcrd.org
     depends_on:
-      - coredns
+      - locator-matrix
 
-  # HAProxy reverse proxy to VSCode (simpler than forward proxy)
-  # Serves LCARS interface and proxies HTTPS to VSCode with Let's Encrypt
-  proxy:
+  # Nginx web server - serves landing page and HTTPS menu
+  shuttlebay:
     build:
-      context: ./docker-proxy
+      context: ./docker-shuttlebay
       dockerfile: Dockerfile
-    env_file:
-      - ./docker-proxy/.env
     ports:
-      - "8443:8443"  # HTTPS proxy to VSCode
-      - "8080:8080"  # LCARS interface
-    # No Let's Encrypt volume needed - proxy uses self-signed certificate
+      - "${WARPBUBBLE_PORT_SHUTTLEBAY}:80"   # Landing page (exposed)
+    volumes:
+      - cert-output:/etc/letsencrypt:ro
     depends_on:
-      - code-server
-      - coredns
+      - locator-matrix
     restart: unless-stopped
     dns:
-      - 172.20.0.10
+      - ${WARPBUBBLE_DNS_SERVER}
     networks:
-      internal:
-        ipv4_address: 172.20.0.11
+      warpbubble:
+        ipv4_address: ${WARPBUBBLE_IP_SHUTTLEBAY}
         aliases:
-          - proxy.vsagcrd.org
-          - forward-proxy.vsagcrd.org
+          - shuttlebay.warp.vsagcrd.org
+
+  # Squid 6 forward proxy for HTTPS tunneling
+  transporter:
+    build:
+      context: ./docker-transporter
+      dockerfile: Dockerfile
+    ports:
+      - "${WARPBUBBLE_PORT_TRANSPORTER}:3128"  # Forward proxy port (squid default is 3128)
+    environment:
+      - DNS_SERVER=${WARPBUBBLE_DNS_SERVER}
+    volumes:
+      - transporter-cache:/var/spool/squid
+      - transporter-logs:/var/log/squid
+    depends_on:
+      - shuttlebay
+      - engineering-console
+      - locator-matrix
+    restart: unless-stopped
+    dns:
+      - ${WARPBUBBLE_DNS_SERVER}
+    networks:
+      warpbubble:
+        ipv4_address: ${WARPBUBBLE_IP_TRANSPORTER}
+        aliases:
+          - transporter.warp.vsagcrd.org
+          - proxy-lcars.vsagcrd.org
+          - forward-proxy-lcars.vsagcrd.org
+
+  # TEST: Ubuntu default entrypoint with hybrid config
+  transporter-test:
+    build:
+      context: ./docker-transporter-test
+      dockerfile: Dockerfile
+    ports:
+      - "${WARPBUBBLE_PORT_TRANSPORTER_TEST}:3128"  # Test on different port
+    environment:
+      - DNS_SERVER=${WARPBUBBLE_DNS_SERVER}
+    volumes:
+      - transporter-test-cache:/var/spool/squid
+      - transporter-test-logs:/var/log/squid
+    depends_on:
+      - locator-matrix
+    restart: unless-stopped
+    dns:
+      - ${WARPBUBBLE_DNS_SERVER}
+    networks:
+      warpbubble:
+        ipv4_address: ${WARPBUBBLE_IP_TRANSPORTER_TEST}
+        aliases:
+          - transporter-test.warp.vsagcrd.org
+          - proxy-test-lcars.vsagcrd.org
+
+  # LCARS Console - Pure nginx web server with Star Trek themed interface
+  console:
+    build:
+      context: ./docker-console
+      dockerfile: Dockerfile
+    ports:
+      - "${WARPBUBBLE_PORT_CONSOLE}:80"  # LCARS Console HTTP
+    environment:
+      - WARP_DOMAIN=${WARP_DOMAIN}
+    volumes:
+      - cert-output:/etc/letsencrypt:ro
+    depends_on:
+      - locator-matrix
+    restart: unless-stopped
+    dns:
+      - ${WARPBUBBLE_DNS_SERVER}
+    networks:
+      warpbubble:
+        ipv4_address: ${WARPBUBBLE_IP_CONSOLE}
+        aliases:
+          - console.${WARP_DOMAIN}
+          - console-lcars.${WARP_DOMAIN}
+
+  # MQTT Message Bus - Optical Data Network for secure system communication
+  optical-data-network:
+    build:
+      context: ./docker-optical-data-network
+      dockerfile: Dockerfile
+    ports:
+      - "8883:8883"  # MQTT over TLS
+    volumes:
+      - optical-data-network-config:/mosquitto/config
+      - optical-data-network-data:/mosquitto/data
+      - optical-data-network-logs:/mosquitto/log
+      - cert-output:/etc/letsencrypt:ro
+    depends_on:
+      - locator-matrix
+    restart: unless-stopped
+    dns:
+      - ${WARPBUBBLE_DNS_SERVER}
+    networks:
+      warpbubble:
+        ipv4_address: ${WARPBUBBLE_IP_OPTICAL_DATA_NETWORK}
+        aliases:
+          - optical-data-network.warp.vsagcrd.org
+          - odn.warp.vsagcrd.org
 
 volumes:
-  code-server-config:
-  code-server-data:
-  code-server-code:
+  engineering-console-config:
+  engineering-console-data:
+  engineering-console-code:
   cert-output:
+  transporter-cache:
+  transporter-logs:
+  transporter-test-cache:
+  transporter-test-logs:
+  optical-data-network-config:
+  optical-data-network-data:
+  optical-data-network-logs:
 
 networks:
-  internal:
+  warpbubble:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.20.0.0/16
+        - subnet: ${WARPBUBBLE_NETWORK_SUBNET}

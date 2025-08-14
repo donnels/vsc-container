@@ -1,0 +1,94 @@
+# Squid 6.x Forward Proxy Configuration
+# Modern configuration for HTTPS tunneling to vsagcrd.org domains
+
+# Basic Settings
+http_port 3128
+
+# Access Control Lists (ACLs)
+acl localnet src 10.0.0.0/8		# RFC1918 possible internal network
+acl localnet src 172.16.0.0/12		# RFC1918 possible internal network  
+acl localnet src 192.168.0.0/16	# RFC1918 possible internal network
+acl localnet src fc00::/7       	# RFC 4193 local private network range
+acl localnet src fe80::/10      	# RFC 4291 link-local (directly plugged) machines
+
+# Safe ports for HTTP and HTTPS
+acl SSL_ports port 443
+acl Safe_ports port 80		# http
+acl Safe_ports port 21		# ftp
+acl Safe_ports port 443		# https
+acl Safe_ports port 70		# gopher
+acl Safe_ports port 210		# wais
+acl Safe_ports port 1025-65535	# unregistered ports
+acl Safe_ports port 280		# http-mgmt
+acl Safe_ports port 488		# gss-http
+acl Safe_ports port 591		# filemaker
+acl Safe_ports port 777		# multiling http
+
+# Method ACLs
+acl CONNECT method CONNECT
+
+# Domain ACLs for vsagcrd.org tunneling (Squid 6 syntax)
+acl vsagcrd_domains dstdomain .vsagcrd.org
+
+# Access Rules
+# Deny requests to certain unsafe ports
+http_access deny !Safe_ports
+
+# Deny CONNECT to other than secure SSL ports
+http_access deny CONNECT !SSL_ports
+
+# Allow localhost manager access (for debugging)
+http_access allow localhost manager
+
+# Allow local network access
+http_access allow localnet localhost
+
+# Allow HTTPS tunneling to vsagcrd.org domains
+http_access allow CONNECT vsagcrd_domains
+
+# Allow all HTTP access (can be restricted if needed)
+http_access allow all
+
+# Deny all other access
+http_access deny all
+
+# Cache Configuration
+cache_dir ufs /var/spool/squid 1000 16 256
+cache_mem 256 MB
+maximum_object_size_in_memory 512 KB
+maximum_object_size 10 MB
+
+# Leave coredumps in the first cache dir
+coredump_dir /var/spool/squid
+
+# Logging
+access_log /var/log/squid/access.log squid
+cache_log /var/log/squid/cache.log
+
+# DNS Settings for internal resolution
+dns_nameservers DNS_SERVER_PLACEHOLDER
+
+# Forward Proxy Optimizations
+forwarded_for delete
+via off
+
+# Connection Settings
+connect_timeout 60 seconds
+read_timeout 300 seconds
+request_timeout 300 seconds
+
+# Memory and Performance
+memory_pools off
+pipeline_prefetch off
+
+# Refresh Patterns (minimal for forward proxy)
+refresh_pattern ^ftp:		1440	20%	10080
+refresh_pattern ^gopher:	1440	0%	1440
+refresh_pattern -i (/cgi-bin/|\?) 0	0%	0
+refresh_pattern .		0	20%	4320
+
+# Shutdown Settings
+shutdown_lifetime 10 seconds
+
+# Debug (comment out for production)
+# debug_options ALL,1 33,2 28,9

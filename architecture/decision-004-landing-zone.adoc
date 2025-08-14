@@ -1,0 +1,69 @@
+:ARC-ID: 004
+:ARC-TITLE: Landing Zone Server for Proxy Configuration
+:ARC-TOPIC: network
+:ARC-STATUS: accepted
+
+[#ARCID-{arc-id}]
+= {arc-id} - {arc-topic} - {arc-title}
+This decision is part of the {arc-topic} architecture.
+
+== Context
+
+The warp bubble environment operates in mobile conditions where external IP addresses and WiFi networks change frequently. Users need a simple way to configure proxy settings to access internal services regardless of the current network configuration.
+
+== Problem Statement / Motivation
+
+External network changes (WiFi networks, mobile hotspots, hotel networks) result in different IP addresses for the Steam Deck hosting the warp bubble. Users need an easy way to discover and configure proxy settings without manual IP address updates each time the network changes.
+
+== Alternatives Considered
+
+=== Manual Proxy Configuration
+
+.Pro
+* Simple implementation
+* No additional services needed
+* Direct configuration control
+
+.Con
+* Requires manual IP updates on network changes
+* Poor user experience in mobile environments
+* Error-prone configuration process
+* Documentation maintenance overhead
+
+=== Landing Zone Server with PAC File
+
+.Pro
+* Automatic proxy discovery
+* Network-change resilient
+* User-friendly configuration
+* Supports multiple proxy endpoints
+* Centralized configuration management
+
+.Con
+* Additional web server required
+* PAC file generation complexity
+* Initial setup learning curve
+
+== Decision Outcome
+
+We will implement a dedicated landing zone server (nginx-based) that provides proxy configuration details, PAC files, and easy access instructions for the current network configuration.
+
+=== Justification
+
+The mobile nature of the Steam Deck environment requires a solution that adapts to changing network conditions. A landing zone server provides users with current proxy settings and PAC files, eliminating the need for manual configuration updates when networks change.
+
+=== Consequences
+
+* Nginx-based landing zone server required
+* PAC file generation and serving capability
+* Dynamic proxy configuration based on current network
+* Enhanced user experience for mobile usage
+* Reduced support overhead for proxy configuration
+* Web-based interface for current connection details
+
+=== Derived / Related Decisions
+
+* Forward tunneling proxy implementation (<<ARCID-002>>)
+* DNS infrastructure within warp bubble (<<ARCID-003>>)
+* HTTPS certificates for secure access (<<ARCID-001>>)
+* LCARS interface design for VR environment (<<ARCID-007>>)

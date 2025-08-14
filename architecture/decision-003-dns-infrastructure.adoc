@@ -1,0 +1,68 @@
+:ARC-ID: 003
+:ARC-TITLE: DNS Infrastructure Within Warp Bubble
+:ARC-TOPIC: network
+:ARC-STATUS: accepted
+
+[#ARCID-{arc-id}]
+= {arc-id} - {arc-topic} - {arc-title}
+This decision is part of the {arc-topic} architecture.
+
+== Context
+
+Services within the warp bubble need consistent DNS resolution for *.vsagcrd.org domains regardless of external network configuration. Certificate validation requires proper DNS resolution to match certificate subject names with actual service endpoints.
+
+== Problem Statement / Motivation
+
+External DNS servers cannot resolve internal warp bubble service names (e.g., locator-matrix.warp.vsagcrd.org, console.warp.vsagcrd.org). Services need reliable name resolution for inter-service communication and certificate validation. External network changes should not affect internal service discovery.
+
+== Alternatives Considered
+
+=== External DNS with Public Records
+
+.Pro
+* No additional infrastructure
+* Works from anywhere
+* Standard DNS resolution
+
+.Con
+* Exposes internal network topology
+* Security risk with public DNS records
+* External dependency for internal services
+* Cannot resolve to private IP addresses
+
+=== Internal DNS Server (CoreDNS)
+
+.Pro
+* Full control over DNS resolution
+* Private network topology hidden
+* Reliable internal service discovery
+* Custom domain resolution rules
+* Network independence
+
+.Con
+* Additional service to maintain
+* DNS server configuration complexity
+* Single point of failure if not redundant
+
+== Decision Outcome
+
+We will implement CoreDNS as the internal DNS server for the warp bubble network to provide reliable resolution of *.vsagcrd.org domains to internal IP addresses. we will use the sub domain warp.vsagcrd.org for all warp bubble services.
+
+=== Justification
+
+Internal DNS infrastructure ensures reliable service discovery within the warp bubble while maintaining security by not exposing internal network topology. This enables proper certificate validation and inter-service communication regardless of external network conditions.
+
+=== Consequences
+
+* CoreDNS container required in warp bubble
+* All services configured to use internal DNS
+* Custom DNS zone configuration for *.warp.vsagcrd.org
+* Enhanced security through private DNS resolution
+* Reliable service discovery for internal communications
+* Template-based DNS configuration for dynamic service registration
+
+=== Derived / Related Decisions
+
+* HTTPS certificates required (<<ARCID-001>>)
+* Forward tunneling proxy implementation (<<ARCID-002>>)
+* Landing zone server for external access (<<ARCID-004>>)

@@ -1,0 +1,68 @@
+:ARC-ID: 002
+:ARC-TITLE: Forward Tunneling Proxy for External Access
+:ARC-TOPIC: network
+:ARC-STATUS: accepted
+
+[#ARCID-{arc-id}]
+= {arc-id} - {arc-topic} - {arc-title}
+This decision is part of the {arc-topic} architecture.
+
+== Context
+
+The warp bubble environment operates on internal private networks (172.20.0.0/16) and needs to expose HTTPS services with valid certificates to external clients. Traditional reverse proxy solutions don't work well in mobile environments with changing external IPs and network configurations.
+
+== Problem Statement / Motivation
+
+Services within the warp bubble need external access while maintaining security. The mobile nature of the Steam Deck environment means external IP addresses and network configurations change frequently, making traditional port forwarding or reverse proxy solutions impractical.
+
+== Alternatives Considered
+
+=== Direct Port Forwarding
+
+.Pro
+* Simple configuration
+* Direct connection
+* Low latency
+
+.Con
+* Requires static external IP
+* Network configuration changes break access
+* Complex firewall management
+* Security exposure of internal services
+
+=== Forward Tunneling Proxy (Squid)
+
+.Pro
+* Works with changing network configurations
+* Secure HTTPS tunneling
+* Client-initiated connections
+* No external firewall configuration needed
+* Supports mobile environments
+
+.Con
+* Additional proxy configuration required
+* Client needs proxy settings
+* Slightly increased latency
+
+== Decision Outcome
+
+We will implement a forward tunneling proxy using Squid to enable secure external access to internal warp bubble services.
+
+=== Justification
+
+The forward tunneling approach provides the flexibility needed for mobile environments while maintaining security. It allows the warp bubble to be network-agnostic and eliminates the need for complex firewall configurations or static IP requirements.
+
+=== Consequences
+
+* Squid proxy server required within warp bubble
+* Client applications need proxy configuration
+* PAC (Proxy Auto-Configuration) file needed for ease of use
+* Enhanced security through controlled access points
+* Network mobility fully supported
+
+=== Derived / Related Decisions
+
+* HTTPS certificates required (<<ARCID-001>>)
+* Landing zone server for proxy configuration (<<ARCID-004>>)
+* DNS infrastructure within warp bubble (<<ARCID-003>>)
+* Test container for multi-device compatibility (<<ARCID-008>>)
