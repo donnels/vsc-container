@@ -25,41 +25,108 @@ group initialization
     user -> headset: configure proxy settings
 end group
 
+@startuml warp-bubble-architecture
+title Warp Bubble Architecture - Star Trek Themed Development Environment
+footer (C)2025 Sean Donnellan
+
+actor user
+participant headset
+participant router
+box SteamDeck #aaf-fff
+    participant "TRANSPORTER
+(Squid forward proxy)" as steamdeck.transporter <<container>>
+    participant "SHUTTLEBAY
+(nginx landing page)" as steamdeck.shuttlebay <<container>>
+    participant "LOCATOR-MATRIX
+(CoreDNS)" as steamdeck.locator <<container>>
+    participant "DEFLECTOR
+(certbot)" as steamdeck.deflector <<container>>
+    participant "ENGINEERING CONSOLE
+(VS Code)" as steamdeck.engineering <<container>>
+    participant "CONSOLE
+(LCARS interface)" as steamdeck.console <<container>>
+    participant "OPTICAL DATA NETWORK
+(MQTT)" as steamdeck.odn <<container>>
+end box
+
+group initialization
+    user -> headset: activate headset
+    headset -> router: connect to Wi-Fi
+    user -> headset: configure proxy settings
+end group
+
 group initial test tunnel to website with Let's Encrypt cert and menu
-    note over headset
-        User clicks LCARS link from the landing page
+    note over steamdeck.shuttlebay
+        SHUTTLEBAY serves proxy configuration page
     end note
-    headset -> steamdeck.haproxy: CONNECT www-lcars.vsagcrd.org:443
-    note right
-        HA-proxy is a FORWARD proxy
-        The client headset is requesting an Internal steamdeck website as an initial test
-        the page will provide a link to the VSCode container
-        the internal nginx HAS a Let's Encrypt cert
+    headset <-> steamdeck.shuttlebay: HTTP landing page
+    headset <- steamdeck.shuttlebay: provide proxy details (proxy: steamdeck.fritz.box:3128)
+    user -> headset: configure proxy settings
+end group
+
+group access VSCode container via forward proxy
+    note over steamdeck.transporter
+        TRANSPORTER is a FORWARD proxy
+        (not reverse proxy)
+        Squid-based HTTPS tunneling
     end note
-    steamdeck.haproxy -> steamdeck.dns: resolve www-lcars.vsagcrd.org
-    note right
-        the DNS is used the first time then cached results are used
+    
+    headset -> steamdeck.transporter: CONNECT engineering-console.warp.vsagcrd.org:8443
+    
+    note over steamdeck.transporter, steamdeck.locator
+        Forward proxy looks up internal DNS
     end note
-    steamdeck.haproxy <- steamdeck.dns: A record
-    steamdeck.haproxy -> steamdeck.nginx: TCP connect :443
-    steamdeck.haproxy <- steamdeck.nginx: TCP connection established
-    headset <- steamdeck.haproxy: HTTP 200 Connection established
-    note right
-        HAProxy establishes TCP tunnel
-        All subsequent traffic is passed through transparently
+    
+    steamdeck.transporter -> steamdeck.locator: resolve engineering-console.warp.vsagcrd.org
+    note over steamdeck.locator
+        LOCATOR-MATRIX provides internal DNS
+        for *.warp.vsagcrd.org domains
     end note
-    headset -> steamdeck.haproxy: [TLS handshake data]
-    steamdeck.haproxy -> steamdeck.nginx: [TLS handshake data]
-    steamdeck.haproxy <- steamdeck.nginx: [TLS handshake data]
-    headset <- steamdeck.haproxy: [TLS handshake data]
-    note right
-        TLS session is end-to-end between headset and nginx
-        HAProxy only forwards encrypted data
+    steamdeck.transporter <- steamdeck.locator: A record
+    steamdeck.transporter -> steamdeck.engineering: TCP connect :8443
+    steamdeck.transporter <- steamdeck.engineering: TCP connection established
+    headset <- steamdeck.transporter: HTTP 200 Connection established
+    
+    note over steamdeck.transporter
+        Transporter establishes TCP tunnel
     end note
-    note across headset,steamdeck.nginx
-        tunnel
+    
+    headset -> steamdeck.transporter: [TLS handshake data]
+    steamdeck.transporter -> steamdeck.engineering: [TLS handshake data]
+    steamdeck.transporter <- steamdeck.engineering: [TLS handshake data]
+    headset <- steamdeck.transporter: [TLS handshake data]
+    
+    note over steamdeck.transporter
+        Transporter only forwards encrypted data
+        Let's Encrypt certificates handled by VS Code
     end note
-    headset <-> steamdeck.nginx:encrypted HTTPS session (via HAProxy tunnel)
+    
+    headset <-> steamdeck.engineering: encrypted HTTPS session (via Transporter tunnel)
+    note over steamdeck.engineering
+        ENGINEERING CONSOLE runs VS Code
+        with Let's Encrypt certificates
+    end note
+end group
+
+group LCARS console access
+    headset <-> steamdeck.console: HTTP LCARS interface
+    note over steamdeck.console
+        CONSOLE provides Star Trek themed
+        operations interface for VR headsets
+    end note
+end group
+
+group certificate distribution via optical data network
+    steamdeck.deflector -> steamdeck.odn: publish certificate updates
+    steamdeck.odn -> steamdeck.engineering: distribute new certificates
+    steamdeck.odn -> steamdeck.shuttlebay: distribute new certificates
+    note over steamdeck.odn
+        OPTICAL DATA NETWORK uses MQTT
+        for secure inter-service communication
+    end note
+end group
+
+@enduml
 end group
 
 group access VSCode container

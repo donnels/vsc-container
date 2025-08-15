@@ -23,4 +23,4 @@ WARPBUBBLE_IP_CONSOLE_PLACEHOLDER console.warp.vsagcrd.org console-lcars.warp.vs
 WARPBUBBLE_IP_TRANSPORTER_TEST_PLACEHOLDER transporter-test.warp.vsagcrd.org proxy-test-lcars.vsagcrd.org
 
 # MQTT Message Bus (OPTICAL DATA NETWORK)
-WARPBUBBLE_IP_OPTICAL_DATA_NETWORK_PLACEHOLDER optical-data-network.warp.vsagcrd.org mqtt-lcars.warp.vsagcrd.org
+WARPBUBBLE_IP_OPTICAL_DATA_NETWORK_PLACEHOLDER optical-data-network.warp.vsagcrd.org odn.warp.vsagcrd.org mqtt-lcars.warp.vsagcrd.org

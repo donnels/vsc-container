@@ -1,5 +1,5 @@
 @startuml config-overview
-title VSCode Container Project - Reverse Proxy Architecture
+title Warp Bubble Container Project - Star Trek Themed Architecture
 footer (C)2025 Sean Donnellan
 
 skinparam shadowing 1
@@ -8,131 +8,125 @@ skinparam participantBackgroundColor #fff/aaf
 
 package "docker/" {
   file "docker-compose.yaml" as compose
+  file ".env" as central_env
   
-  package "docker-vsc/" {
-    file "Dockerfile" as vsc_docker
+  package "docker-engineering-console/" {
+    file "Dockerfile" as engineering_docker
     file "generate_certs.sh" as cert_script
-    file ".env.template" as vsc_env
     file "extensions.json" as extensions
   }
   
-  package "docker-certbot/" {
-    file "Dockerfile" as certbot_docker
-    file "entrypoint.sh" as certbot_entry
-    file ".env.template" as certbot_env
+  package "docker-deflector/" {
+    file "Dockerfile" as deflector_docker
+    file "entrypoint.sh" as deflector_entry
   }
   
-  package "docker-proxy/" {
-    file "Dockerfile" as proxy_docker
-    file "haproxy.cfg.template" as haproxy_config
-    file "nginx-temp.conf" as nginx_lcars
-    file ".env.template" as proxy_env
+  package "docker-transporter/" {
+    file "Dockerfile" as transporter_docker
+    file "squid6.conf.template" as squid_config
+    file "squid-start.sh" as squid_start
+  }
+  
+  package "docker-console/" {
+    file "Dockerfile" as console_docker
+    file "nginx.conf.template" as nginx_lcars
     package "lcars/" {
       file "index.html" as lcars_html
       file "style.css" as lcars_css
     }
   }
   
-  package "docker-coredns/" {
+  package "docker-locator-matrix/" {
+    file "Dockerfile" as locator_docker
     file "Corefile" as coredns_config
-    file "hosts" as coredns_hosts
+    file "hosts.template" as coredns_hosts
+  }
+  
+  package "docker-shuttlebay/" {
+    file "Dockerfile" as shuttlebay_docker
+    file "nginx.conf" as shuttlebay_nginx
+  }
+  
+  package "docker-optical-data-network/" {
+    file "Dockerfile" as odn_docker
+    file "mosquitto.conf.template" as mqtt_config
+    file "entrypoint.sh" as mqtt_entry
   }
 }
 
 package "Runtime Architecture" {
-  node "HAProxy Reverse Proxy\n172.20.0.11:8443\n(Self-signed cert)" as proxy_runtime
-  node "VS Code Server\n172.20.0.12:8443\n(Let's Encrypt cert)" as vscode_runtime
-  node "CoreDNS\n172.20.0.10:53" as dns_runtime
-  node "LCARS Interface\n:8080" as lcars_runtime
+  node "TRANSPORTER\nSquid Forward Proxy\n172.20.0.11:3128" as transporter_runtime
+  node "ENGINEERING CONSOLE\nVS Code Server\n172.20.0.12:8443\n(Let's Encrypt cert)" as engineering_runtime
+  node "LOCATOR-MATRIX\nCoreDNS\n172.20.0.10:53" as locator_runtime
+  node "CONSOLE\nLCARS Interface\n172.20.0.16:80" as console_runtime
+  node "SHUTTLEBAY\nLanding Page\n172.20.0.14:8080" as shuttlebay_runtime
+  node "OPTICAL DATA NETWORK\nMQTT Broker\n172.20.0.17:8883" as odn_runtime
 }
 
 ' Configuration relationships
-compose --> proxy_docker : builds
-compose --> vsc_docker : builds
-compose --> certbot_docker : builds
+compose --> engineering_docker : builds
+compose --> deflector_docker : builds
+compose --> transporter_docker : builds
+compose --> console_docker : builds
+compose --> locator_docker : builds
+compose --> shuttlebay_docker : builds
+compose --> odn_docker : builds
 
-proxy_docker --> haproxy_config : HAProxy reverse proxy
-proxy_docker --> nginx_lcars : LCARS interface  
-proxy_docker --> lcars_html : Static UI
-proxy_docker --> lcars_css : LCARS styling
+central_env --> compose : Centralized config
 
-vsc_docker --> cert_script : Extension installer
-vsc_docker --> extensions : Pre-installed extensions
+transporter_docker --> squid_config : Squid forward proxy
+transporter_docker --> squid_start : Startup script
 
-certbot_docker --> certbot_entry : Let's Encrypt generator
+console_docker --> nginx_lcars : LCARS interface  
+console_docker --> lcars_html : Static UI
+console_docker --> lcars_css : LCARS styling
 
-compose --> dns_runtime : CoreDNS service
-coredns_config --> dns_runtime : DNS configuration
-coredns_hosts --> dns_runtime : Internal hosts
+engineering_docker --> cert_script : Extension installer
+engineering_docker --> extensions : Pre-installed extensions
+
+deflector_docker --> deflector_entry : Let's Encrypt generator
+
+locator_docker --> coredns_config : DNS configuration
+locator_docker --> coredns_hosts : Internal hosts template
+
+odn_docker --> mqtt_config : MQTT broker config
+odn_docker --> mqtt_entry : MQTT startup
 
 ' Runtime relationships
-proxy_runtime --> vscode_runtime : HTTPS reverse proxy\n(SSL termination)
-proxy_runtime --> lcars_runtime : Status interface
-dns_runtime --> vscode_runtime : Service discovery
-certbot_entry --> vscode_runtime : Let's Encrypt certificates
+transporter_runtime --> engineering_runtime : HTTPS forward proxy
+console_runtime --> engineering_runtime : LCARS interface links
+locator_runtime --> engineering_runtime : Service discovery
+deflector_entry --> engineering_runtime : Let's Encrypt certificates
+odn_runtime --> deflector_entry : Certificate distribution
 
-note top of proxy_runtime
-**Reverse Proxy Features**
-- Self-signed certificate (external)
-- SSL termination + re-encryption
-- HAProxy backends to VSCode
-- Standard HTTPS access
+note top of transporter_runtime
+**Forward Proxy Features**
+- HTTPS tunneling for .vsagcrd.org
+- Mobile network traversal
+- Squid-based proxy
+- Standard port 3128
 end note
 
-note top of vscode_runtime
+note top of engineering_runtime
 **VS Code Server**
 - Let's Encrypt certificate
 - HTTPS on port 8443
 - Pre-installed extensions
-- Internal network only
+- Star Trek themed naming
 end note
 
-note top of dns_runtime
+note top of locator_runtime
 **Internal DNS**
-- *.vsagcrd.org resolution
+- *.warp.vsagcrd.org resolution
 - Service discovery
-- Container communication
+- Star Trek themed hostnames
 end note
 
-note bottom of proxy_runtime
-**Port Configuration**
-:8443 - HTTPS (self-signed)
-:8080 - LCARS HTTP interface
-Internal :8081 - nginx backend
+note bottom of console_runtime
+**LCARS Interface**
+:80 - HTTP interface
+Star Trek themed UI
+VR headset optimized
 end note
 
-@enduml
-}
-
-package "Repository Root" {
-  folder "images/" {
-    file "*.plantuml" as diagrams
-  }
-  folder "data/" {
-    file "test.asciidoc" as test_data
-    file "test-diagram.plantuml" as test_diagram
-  }
-  folder "docs/" {
-    file "*.html" as html_docs
-    file "*.pdf" as pdf_docs
-  }
-  folder ".github/workflows/" {
-    file "build-docs.yml" as actions
-  }
-  file "README.asciidoc" as main_readme
-  file "steps-to-create-certs.asciidoc" as cert_steps
-}
-
-actor User
-User --> vsc_env: "Configure VS Code"
-User --> certbot_env: "Configure certificates"
-User --> proxy_env: "Configure proxy"
-User --> compose: "docker-compose up"
-compose --> vsc_docker: "Build VS Code service"
-compose --> certbot_docker: "Build cert service (profile)"
-compose --> proxy_docker: "Build proxy service"
-vsc_docker --> cert_script: "Generate internal certs"
-vsc_docker --> extensions: "Install extensions"
-actions --> diagrams: "Build PlantUML → PNG"
-actions --> main_readme: "Build AsciiDoc → HTML/PDF"
 @enduml

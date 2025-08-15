@@ -18,9 +18,9 @@ bind_address 0.0.0.0
 # MQTT over TLS (Port 8883)
 listener 8883
 protocol mqtt
-cafile /etc/letsencrypt/live/vscode/chain.pem
-certfile /etc/letsencrypt/live/vscode/cert.pem
-keyfile /etc/letsencrypt/live/vscode/privkey.pem
+cafile /etc/letsencrypt/live/${VSCODE_CERT_NAME:-vscode}/chain.pem
+certfile /etc/letsencrypt/live/${VSCODE_CERT_NAME:-vscode}/cert.pem
+keyfile /etc/letsencrypt/live/${VSCODE_CERT_NAME:-vscode}/privkey.pem
 tls_version tlsv1.2
 
 # Security Settings

@@ -64,7 +64,8 @@ This project uses a **forward proxy architecture** for the following reasons:
 
 ----
 # Configure Cloudflare credentials
-cp docker/docker-certbot/.env.template docker/docker-certbot/.env
+cp docker/.env.template docker/.env
+# Edit docker/.env with your Cloudflare credentials and domain configuration
 # Edit .env file with your Cloudflare API token and domains
 
 # Generate VSCode certificate only
@@ -161,9 +162,8 @@ cd vsc-container/docker
 +
 [source,bash]
 ----
-cp docker-certbot/.env.template docker-certbot/.env
-# Edit docker-certbot/.env with your Cloudflare credentials and domain configuration
-docker-compose --profile tools run cert-generator
+# Edit docker/.env with your Cloudflare credentials and domain configuration
+docker-compose --profile tools run deflector
 ----
 
 . Configure proxy environment:
@@ -208,29 +208,32 @@ image::images/proxy-deployment-sequence.png[Production Architecture Flow, 800, 6
 
 === Service Components
 
-**CoreDNS Service** (`docker-coredns/`)::
-- Internal DNS resolution for `.vsagcrd.org` domain
+**CoreDNS Service** (`docker-locator-matrix/`)::
+- Internal DNS resolution for `.warp.vsagcrd.org` domain
 - Service discovery for container-to-container communication
 - Static IP assignment and hostname resolution
 - Forwards external queries to public DNS servers
 
-**Nginx Reverse Proxy** (`docker-proxy/`)::
-- SSL termination with Let's Encrypt certificates for `vsagcrd.org`
-- HTTP to HTTPS redirection  
-- Security headers and modern TLS configuration
-- WebSocket support for VS Code real-time features
-- Standard ports: 80 (HTTP redirect) and 443 (HTTPS)
+**Squid Forward Proxy** (`docker-transporter/`)::
+- Forward proxy with HTTPS tunneling for `.vsagcrd.org` domains
+- Squid-based proxy for mobile network traversal
+- Test instance available (`docker-transporter-test/`)
+- Standard ports: 3128 (main), 3129 (test)
 
-**VS Code Service** (`docker-vsc/`)::
-- Code-server accessible as `vscode.vsagcrd.org` internally
+**VS Code Service** (`docker-engineering-console/`)::
+- Code-server accessible as `engineering-console.warp.vsagcrd.org` internally
 - Uses dedicated Let's Encrypt certificate (separate from proxy)
 - Pre-installed development extensions (PlantUML, AsciiDoctor)
 - Internal network access only (security isolation)
 - Development tools: Java, Graphviz, standard utilities
 
-**Certificate Generator** (`docker-certbot/`)::
-- Generates separate Let's Encrypt certificates for proxy and VS Code services
+**Certificate Generator** (`docker-deflector/`)::
+- Generates separate Let's Encrypt certificates for all services
 - Cloudflare DNS-01 challenge for automated domain validation
+- Configurable certificate names and domain sets for each service
+- Automated certificate renewal capabilities
+- On-demand execution via Docker Compose profiles
+- Accessible as `deflector.warp.vsagcrd.org` internally
 - Configurable certificate names and domain sets for each service
 - Automated certificate renewal capabilities
 - On-demand execution via Docker Compose profiles
@@ -264,22 +267,38 @@ Internet → Nginx Proxy (443/80) → CoreDNS (172.20.0.10) → VS Code Containe
 ----
 docker/
 ├── docker-compose.yaml          # Complete orchestration
-├── docker-coredns/               # Internal DNS server
+├── .env                         # Centralized configuration
+├── docker-locator-matrix/       # Internal DNS server (CoreDNS)
 │   ├── Corefile                 # CoreDNS configuration
-│   └── hosts                    # Internal domain host mappings
-├── docker-proxy/                # Nginx reverse proxy
-│   ├── Dockerfile
-│   ├── nginx.conf               # Production SSL config (legacy)
-│   ├── nginx.conf.template      # Templated SSL config  
-│   └── .env.template
-├── docker-vsc/                  # VS Code server
+│   └── hosts.template           # Internal domain host mappings
+├── docker-engineering-console/  # VS Code server
 │   ├── Dockerfile
 │   ├── generate_certs.sh        # Extension installation script
 │   ├── extensions.json          # Pre-installed extensions
-│   └── .env.template
-└── docker-certbot/              # Certificate management
+│   └── nginx.conf
+├── docker-deflector/            # Certificate management (Let's Encrypt)
+│   ├── Dockerfile
+│   ├── entrypoint.sh            # Let's Encrypt automation
+├── docker-transporter/          # Squid forward proxy (main)
+│   ├── Dockerfile
+│   ├── squid6.conf.template
+│   └── squid-start.sh
+├── docker-transporter-test/     # Squid test instance
+│   ├── Dockerfile
+│   ├── squid-ubuntu-hybrid.conf.template
+│   └── ubuntu-init.sh
+├── docker-shuttlebay/           # Landing page (Nginx)
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   └── html/
+├── docker-console/              # LCARS interface (Nginx)
+│   ├── Dockerfile
+│   ├── nginx.conf.template
+│   └── lcars/
+└── docker-optical-data-network/ # MQTT message bus
     ├── Dockerfile
-    ├── entrypoint.sh            # Let's Encrypt automation
+    ├── mosquitto.conf.template
+    └── entrypoint.sh
     └── .env.template
 images/                           # Technical diagrams → PNG
 docs/                            # Generated documentation
@@ -434,6 +453,23 @@ The system uses one standardized deployment approach:
 - No direct container exposure to internet
 
 == Operations and Maintenance
+
+=== DNS Resolution Testing
+
+The warp bubble implements a hybrid DNS strategy (<<ARCID-012>>) where Docker handles internal service discovery and CoreDNS handles external forwarding. Test the complete DNS resolution:
+
+[source,bash]
+----
+# Run comprehensive DNS test suite
+./test-dns-resolution.sh
+----
+
+The test script validates:
+- Internal service discovery via Docker aliases
+- External DNS forwarding through CoreDNS
+- Cross-container communication
+- Star Trek themed hostname resolution
+- MQTT connectivity and package manager functionality
 
 === Monitoring and Logs
 

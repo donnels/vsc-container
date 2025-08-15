@@ -55,7 +55,7 @@ http_port 3128
 coredump_dir /var/spool/squid
 
 # DNS Settings for internal resolution (OUR ADDITION)
-dns_nameservers DNS_SERVER_PLACEHOLDER
+dns_nameservers ${DNS_SERVER}
 
 # Forward Proxy Optimizations (OUR ADDITIONS)
 forwarded_for delete

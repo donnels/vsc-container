@@ -1,23 +1,19 @@
 
 services:
-  locator-matrix:
+  # DNS Diagnostic Array - Star Trek themed testing container
+  diagnostic-array:
     build:
-      context: ./docker-locator-matrix
+      context: ./docker-diagnostic-array
       dockerfile: Dockerfile
-    command: -conf /etc/coredns/Corefile
-    environment:
-      - WARPBUBBLE_IP_LOCATOR_MATRIX=${WARPBUBBLE_IP_LOCATOR_MATRIX}
-      - WARPBUBBLE_IP_TRANSPORTER=${WARPBUBBLE_IP_TRANSPORTER}
-      - WARPBUBBLE_IP_ENGINEERING_CONSOLE=${WARPBUBBLE_IP_ENGINEERING_CONSOLE}
-      - WARPBUBBLE_IP_DEFLECTOR=${WARPBUBBLE_IP_DEFLECTOR}
-      - WARPBUBBLE_IP_SHUTTLEBAY=${WARPBUBBLE_IP_SHUTTLEBAY}
-      - WARPBUBBLE_IP_CONSOLE=${WARPBUBBLE_IP_CONSOLE}
-      - WARPBUBBLE_IP_TRANSPORTER_TEST=${WARPBUBBLE_IP_TRANSPORTER_TEST}
-      - WARPBUBBLE_IP_OPTICAL_DATA_NETWORK=${WARPBUBBLE_IP_OPTICAL_DATA_NETWORK}
+    profiles:
+      - tools
+      - diagnostics
     networks:
       warpbubble:
-        ipv4_address: ${WARPBUBBLE_IP_LOCATOR_MATRIX}
-    restart: unless-stopped
+        aliases:
+          - diagnostic-array.warp.vsagcrd.org
+          - sensors.warp.vsagcrd.org
+    command: ["sleep", "infinity"]  # Keep container running for manual testing
 
   engineering-console:
     build:
@@ -40,8 +36,6 @@ services:
       - cert-output:/etc/letsencrypt:ro
     command: ["/usr/bin/code-server", "/home/coder/code", "--bind-addr", "0.0.0.0:8443", "--auth", "password", "--cert", "/etc/letsencrypt/live/${VSCODE_CERT_NAME:-vscode}/fullchain.pem", "--cert-key", "/etc/letsencrypt/live/${VSCODE_CERT_NAME:-vscode}/privkey.pem"]
     restart: unless-stopped
-    dns:
-      - ${WARPBUBBLE_DNS_SERVER}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_ENGINEERING_CONSOLE}
@@ -51,8 +45,6 @@ services:
           - vscode-lcars.vsagcrd.org
           - code-dev-lcars.vsagcrd.org
           - ide-lcars.vsagcrd.org
-    depends_on:
-      - locator-matrix
 
   deflector:
     build:
@@ -75,16 +67,12 @@ services:
       - cert-output:/etc/letsencrypt
     profiles:
       - tools
-    dns:
-      - ${WARPBUBBLE_DNS_SERVER}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_DEFLECTOR}
         aliases:
           - deflector.warp.vsagcrd.org
           - deflector-lcars.vsagcrd.org
-    depends_on:
-      - locator-matrix
 
   # Nginx web server - serves landing page and HTTPS menu
   shuttlebay:
@@ -95,11 +83,7 @@ services:
       - "${WARPBUBBLE_PORT_SHUTTLEBAY}:80"   # Landing page (exposed)
     volumes:
       - cert-output:/etc/letsencrypt:ro
-    depends_on:
-      - locator-matrix
     restart: unless-stopped
-    dns:
-      - ${WARPBUBBLE_DNS_SERVER}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_SHUTTLEBAY}
@@ -113,18 +97,13 @@ services:
       dockerfile: Dockerfile
     ports:
       - "${WARPBUBBLE_PORT_TRANSPORTER}:3128"  # Forward proxy port (squid default is 3128)
-    environment:
-      - DNS_SERVER=${WARPBUBBLE_DNS_SERVER}
     volumes:
       - transporter-cache:/var/spool/squid
       - transporter-logs:/var/log/squid
     depends_on:
       - shuttlebay
       - engineering-console
-      - locator-matrix
     restart: unless-stopped
-    dns:
-      - ${WARPBUBBLE_DNS_SERVER}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_TRANSPORTER}
@@ -140,16 +119,10 @@ services:
       dockerfile: Dockerfile
     ports:
       - "${WARPBUBBLE_PORT_TRANSPORTER_TEST}:3128"  # Test on different port
-    environment:
-      - DNS_SERVER=${WARPBUBBLE_DNS_SERVER}
     volumes:
       - transporter-test-cache:/var/spool/squid
       - transporter-test-logs:/var/log/squid
-    depends_on:
-      - locator-matrix
     restart: unless-stopped
-    dns:
-      - ${WARPBUBBLE_DNS_SERVER}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_TRANSPORTER_TEST}
@@ -168,11 +141,7 @@ services:
       - WARP_DOMAIN=${WARP_DOMAIN}
     volumes:
       - cert-output:/etc/letsencrypt:ro
-    depends_on:
-      - locator-matrix
     restart: unless-stopped
-    dns:
-      - ${WARPBUBBLE_DNS_SERVER}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_CONSOLE}
@@ -192,11 +161,7 @@ services:
       - optical-data-network-data:/mosquitto/data
       - optical-data-network-logs:/mosquitto/log
       - cert-output:/etc/letsencrypt:ro
-    depends_on:
-      - locator-matrix
     restart: unless-stopped
-    dns:
-      - ${WARPBUBBLE_DNS_SERVER}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_OPTICAL_DATA_NETWORK}

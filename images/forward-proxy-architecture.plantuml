@@ -1,5 +1,5 @@
 @startuml forward-proxy-architecture
-title VSCode Container Project - Forward Proxy Architecture
+title Warp Bubble Container Project - Forward Proxy Architecture (Star Trek Themed)
 footer (C)2025 Sean Donnellan
 
 skinparam shadowing 1
@@ -13,39 +13,39 @@ box "Fritz.Box Network" #lightgray
     participant "Fritz.Box Router" as router
 end box
 
-box "SteamDeck (172.20.0.0/16)" #lightblue
-    participant "HAProxy\nForward Proxy" as proxy <<:8443,:8080>>
-    participant "nginx\nLCARS Interface" as nginx <<:8080>>
-    participant "CoreDNS\nService Discovery" as dns <<:53>>
-    participant "VS Code Server\nDevelopment Environment" as vscode <<:8443>>
-    participant "Certbot\nCertificate Generator" as certbot
+box "SteamDeck Warp Bubble (172.20.0.0/16)" #lightblue
+    participant "TRANSPORTER\nSquid Forward Proxy" as proxy <<:3128>>
+    participant "CONSOLE\nLCARS Interface" as nginx <<:80>>
+    participant "LOCATOR-MATRIX\nCoreDNS Service Discovery" as dns <<:53>>
+    participant "ENGINEERING CONSOLE\nVS Code Server" as vscode <<:8443>>
+    participant "DEFLECTOR\nCertificate Generator" as deflector
 end box
 
 note over proxy
-**HAProxy Forward Proxy**
-- Port 8443: HTTPS forward proxy (self-signed cert)
-- Port 8080: LCARS status interface (HTTP)
+**Squid Transporter**
+- Port 3128: HTTPS forward proxy
 - IP: 172.20.0.11
-- Hostname: forward-proxy.vsagcrd.org
+- Hostname: transporter.warp.vsagcrd.org
+- Forward proxy for .vsagcrd.org domains
 end note
 
 note over vscode
-**VS Code Server**
+**Engineering Console**
 - Port 8443: HTTPS (Let's Encrypt cert)
 - IP: 172.20.0.12
-- Hostname: code-dev.vsagcrd.org
+- Hostname: engineering-console.warp.vsagcrd.org
 - Certificate: Real Let's Encrypt
 end note
 
 note over dns
-**CoreDNS**
+**Locator Matrix**
 - Port 53: DNS resolution
 - IP: 172.20.0.10
-- Resolves *.vsagcrd.org domains
+- Resolves *.warp.vsagcrd.org domains
 end note
 
-note over certbot
-**Certbot (Tools Profile)**
+note over deflector
+**Deflector Array (Tools Profile)**
 - IP: 172.20.0.13
 - Generates Let's Encrypt certificates
 - DNS-01 challenge via Cloudflare

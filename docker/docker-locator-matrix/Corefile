@@ -3,7 +3,7 @@
     # This will use Fritz Box (10.251.2.1) when home, mobile DNS when traveling
     forward . /etc/resolv.conf
     
-    # Enable caching
+    # Enable caching for external queries
     cache 30
     
     # Enable error logging
@@ -18,18 +18,5 @@
     prometheus :9153
 }
 
-# Internal vsagcrd.org domain using simple hosts file
-# This automatically provides BOTH forward and reverse DNS
-vsagcrd.org {
-    hosts /etc/coredns/hosts {
-        ttl 300
-        reload 5s
-        fallthrough
-    }
-    
-    log
-    errors
-}
-
-# Reverse DNS is handled automatically by the hosts plugin
-# PTR records are auto-generated from the hosts file entries
+# NOTE: Internal vsagcrd.org domains are now handled by Docker Compose aliases
+# This CoreDNS instance only handles external DNS forwarding and caching
