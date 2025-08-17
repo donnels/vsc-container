@@ -3,13 +3,12 @@ FROM docker.io/eclipse-mosquitto:latest
 # Install additional tools for debugging and certificate management
 USER root
 RUN apk add --no-cache \
-    openssl \
-    curl \
+    openssl curl \
     gettext
 
 # Create proper directory structure with correct permissions
-RUN mkdir -p /mosquitto/config /mosquitto/data /mosquitto/log \
-    && chown -R mosquitto:mosquitto /mosquitto
+RUN mkdir -p /mosquitto/config /mosquitto/data /mosquitto/log /var/run/mosquitto \
+    && chown -R mosquitto:mosquitto /mosquitto /var/run/mosquitto 
 
 # Copy configuration files
 COPY mosquitto.conf.template /mosquitto/config/mosquitto.conf.template

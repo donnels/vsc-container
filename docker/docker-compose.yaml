@@ -184,7 +184,6 @@ services:
       - CERT_DOMAIN=${CERT_DOMAIN}
       - FQDN=${WARPBUBBLE_NAME_OPTICAL_DATA_NETWORK}.${CERT_DOMAIN}
     volumes:
-      - optical-data-network-config:/mosquitto/config
       - optical-data-network-data:/mosquitto/data
       - optical-data-network-logs:/mosquitto/log
       - cert-output:/etc/letsencrypt:ro
