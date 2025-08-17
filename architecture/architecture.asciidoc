@@ -78,11 +78,6 @@ image::images/architecture.png[Architecture Overview, 800, 600]
 |MQTT message bus for secure certificate distribution and system event communication
 |Internal :8883
 
-|transporter-test
-|TRANSPORTER (TEST)
-|Squid
-|Test instance of forward proxy with Ubuntu configuration
-|External :3129
 |===
 
 == Decisions
@@ -113,6 +108,8 @@ include::decision-010-mqtt-optical-data-network.adoc[]
 include::decision-011-star-trek-naming.adoc[]
 
 include::decision-012-aaa-system.adoc[]
+
+include::decision-013-data-sources.adoc[]
 
 :leveloffset: 0
 

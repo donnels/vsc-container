@@ -1,4 +1,3 @@
-
 services:
   # CoreDNS server for complete bidirectional DNS resolution
   locator-matrix:
@@ -6,7 +5,8 @@ services:
       context: ./docker-locator-matrix
       dockerfile: Dockerfile
     environment:
-      - WARP_DOMAIN=${WARP_DOMAIN}
+      - CERT_DOMAIN=${CERT_DOMAIN}
+      - CERT_NAME=${WARPBUBBLE_NAME_LOCATOR_MATRIX}.${CERT_DOMAIN}
       - BASE_DOMAIN=${BASE_DOMAIN}
       - WARPBUBBLE_SERVICES=${WARPBUBBLE_SERVICES}
       # Pass all IP variables for hosts file generation
@@ -19,10 +19,6 @@ services:
       - WARPBUBBLE_IP_TRANSPORTER_TEST=${WARPBUBBLE_IP_TRANSPORTER_TEST}
       - WARPBUBBLE_IP_CONSOLE=${WARPBUBBLE_IP_CONSOLE}
       - WARPBUBBLE_IP_OPTICAL_DATA_NETWORK=${WARPBUBBLE_IP_OPTICAL_DATA_NETWORK}
-    ports:
-      - "${WARPBUBBLE_PORT_LOCATOR_MATRIX:-53}:53/udp"  # DNS
-      - "${WARPBUBBLE_PORT_LOCATOR_MATRIX_TCP:-53}:53/tcp"  # DNS over TCP
-      - "9153:9153"  # CoreDNS metrics
     volumes:
       - locator-matrix-data:/data
     restart: unless-stopped
@@ -30,32 +26,36 @@ services:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_LOCATOR_MATRIX}
         aliases:
-          - locator-matrix.${WARP_DOMAIN}
-          - dns.${WARP_DOMAIN}
+          - locator-matrix.${CERT_DOMAIN}
+          - dns.${CERT_DOMAIN}
 
   # DNS Diagnostic Array - Star Trek themed testing container
   diagnostic-array:
     build:
       context: ./docker-diagnostic-array
       dockerfile: Dockerfile
-    profiles:
-      - tools
-      - diagnostics
+    environment:
+      - CERT_DOMAIN=${CERT_DOMAIN}
+      - CERT_NAME=${WARPBUBBLE_NAME_DIAGNOSTIC_ARRAY}.${CERT_DOMAIN}
     dns:
       - ${WARPBUBBLE_IP_LOCATOR_MATRIX}
     networks:
       warpbubble:
+        ipv4_address: ${WARPBUBBLE_IP_DIAGNOSTIC_ARRAY}
         aliases:
-          - diagnostic-array.${WARP_DOMAIN}
+          - diagnostic-array.${CERT_DOMAIN}
     command: ["sleep", "infinity"]  # Keep container running for manual testing
+    depends_on:
+      - deflector
+      - locator-matrix
 
   engineering-console:
     build:
       context: ./docker-engineering-console
       dockerfile: Dockerfile
     environment:
-      - CERT_HOSTNAMES=${CERT_HOSTNAMES:-code-dev.${BASE_DOMAIN:-vsagcrd.org} localhost 127.0.0.1}
-      - VSCODE_CERT_NAME=${VSCODE_CERT_NAME:-vscode}
+      - CERT_DOMAIN=${CERT_DOMAIN}
+      - CERT_NAME=${WARPBUBBLE_NAME_ENGINEERING_CONSOLE}.${CERT_DOMAIN}
       - PASSWORD=${PASSWORD:-vscode}
       - CODE_SERVER_PASSWORD_HASH=${CODE_SERVER_PASSWORD_HASH}
       - CODE_SERVER_AUTH_MESSAGE=${CODE_SERVER_AUTH_MESSAGE}
@@ -76,43 +76,39 @@ services:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_ENGINEERING_CONSOLE}
         aliases:
-          - engineering-console.${WARP_DOMAIN}
-          - vscode.${WARP_DOMAIN}
+          - engineering-console.${CERT_DOMAIN}
+          - vscode.${CERT_DOMAIN}
+    depends_on:
+      - deflector
+      - locator-matrix
 
   deflector:
     build:
       context: ./docker-deflector
       dockerfile: Dockerfile
     environment:
+      - CERT_DOMAIN=${CERT_DOMAIN}
       - DOMAIN=${DOMAIN}
       - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
-      - WEB_DOMAINS=${WEB_DOMAINS}
-      - WEB_CERT_NAME=${WEB_CERT_NAME}
-      - VSCODE_DOMAINS=${VSCODE_DOMAINS}
-      - VSCODE_CERT_NAME=${VSCODE_CERT_NAME}
-      - CONSOLE_DOMAINS=${CONSOLE_DOMAINS}
-      - CONSOLE_CERT_NAME=${CONSOLE_CERT_NAME}
-      - GENERATE_WEB_CERT=${GENERATE_WEB_CERT}
-      - GENERATE_VSCODE_CERT=${GENERATE_VSCODE_CERT}
-      - GENERATE_CONSOLE_CERT=${GENERATE_CONSOLE_CERT}
-      - GENERATE_PROXY_CERT=${GENERATE_PROXY_CERT}
+      - WARPBUBBLE_SERVICES=${WARPBUBBLE_SERVICES}
     volumes:
       - cert-output:/etc/letsencrypt
-    profiles:
-      - tools
     dns:
       - ${WARPBUBBLE_IP_LOCATOR_MATRIX}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_DEFLECTOR}
         aliases:
-          - deflector.${WARP_DOMAIN}
+          - deflector.${CERT_DOMAIN}
 
   # Nginx web server - serves landing page and HTTPS menu
   shuttlebay:
     build:
       context: ./docker-shuttlebay
       dockerfile: Dockerfile
+    environment:
+      - CERT_DOMAIN=${CERT_DOMAIN}
+      - FQDN=${WARPBUBBLE_NAME_SHUTTLEBAY}.${CERT_DOMAIN}
     ports:
       - "${WARPBUBBLE_PORT_SHUTTLEBAY}:80"   # Landing page (exposed)
     volumes:
@@ -124,19 +120,28 @@ services:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_SHUTTLEBAY}
         aliases:
-          - shuttlebay.${WARP_DOMAIN}
+          - shuttlebay.${CERT_DOMAIN}
+    depends_on:
+      - deflector
+      - locator-matrix
 
   # Squid 6 forward proxy for HTTPS tunneling
   transporter:
     build:
       context: ./docker-transporter
       dockerfile: Dockerfile
+    environment:
+      - CERT_DOMAIN=${CERT_DOMAIN}
+      - FQDN=${WARPBUBBLE_NAME_TRANSPORTER}.${CERT_DOMAIN}
+
     ports:
       - "${WARPBUBBLE_PORT_TRANSPORTER}:3128"  # Forward proxy port (squid default is 3128)
     volumes:
       - transporter-cache:/var/spool/squid
       - transporter-logs:/var/log/squid
     depends_on:
+      - deflector
+      - locator-matrix
       - shuttlebay
       - engineering-console
     restart: unless-stopped
@@ -146,36 +151,16 @@ services:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_TRANSPORTER}
         aliases:
-          - transporter.${WARP_DOMAIN}
-
-  # TEST: Ubuntu default entrypoint with hybrid config
-  transporter-test:
-    build:
-      context: ./docker-transporter-test
-      dockerfile: Dockerfile
-    ports:
-      - "${WARPBUBBLE_PORT_TRANSPORTER_TEST}:3128"  # Test on different port
-    volumes:
-      - transporter-test-cache:/var/spool/squid
-      - transporter-test-logs:/var/log/squid
-    restart: unless-stopped
-    dns:
-      - ${WARPBUBBLE_IP_LOCATOR_MATRIX}
-    networks:
-      warpbubble:
-        ipv4_address: ${WARPBUBBLE_IP_TRANSPORTER_TEST}
-        aliases:
-          - transporter-test.${WARP_DOMAIN}
+          - transporter.${CERT_DOMAIN}
 
   # LCARS Console - Pure nginx web server with Star Trek themed interface
   console:
     build:
       context: ./docker-console
       dockerfile: Dockerfile
-    ports:
-      - "${WARPBUBBLE_PORT_CONSOLE}:80"  # LCARS Console HTTP
     environment:
-      - WARP_DOMAIN=${WARP_DOMAIN}
+      - CERT_DOMAIN=${CERT_DOMAIN}
+      - FQDN=${WARPBUBBLE_NAME_CONSOLE}.${CERT_DOMAIN}
     volumes:
       - cert-output:/etc/letsencrypt:ro
     restart: unless-stopped
@@ -185,15 +170,19 @@ services:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_CONSOLE}
         aliases:
-          - console.${WARP_DOMAIN}
+          - console.${CERT_DOMAIN}
+    depends_on:
+      - deflector
+      - locator-matrix
 
   # MQTT Message Bus - Optical Data Network for secure system communication
   optical-data-network:
     build:
       context: ./docker-optical-data-network
       dockerfile: Dockerfile
-    ports:
-      - "8883:8883"  # MQTT over TLS
+    environment:
+      - CERT_DOMAIN=${CERT_DOMAIN}
+      - FQDN=${WARPBUBBLE_NAME_OPTICAL_DATA_NETWORK}.${CERT_DOMAIN}
     volumes:
       - optical-data-network-config:/mosquitto/config
       - optical-data-network-data:/mosquitto/data
@@ -206,8 +195,11 @@ services:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_OPTICAL_DATA_NETWORK}
         aliases:
-          - optical-data-network.${WARP_DOMAIN}
-          - odn.${WARP_DOMAIN}
+          - optical-data-network.${CERT_DOMAIN}
+          - odn.${CERT_DOMAIN}
+    depends_on:
+      - deflector
+      - locator-matrix
 
 volumes:
   locator-matrix-data:
@@ -217,8 +209,6 @@ volumes:
   cert-output:
   transporter-cache:
   transporter-logs:
-  transporter-test-cache:
-  transporter-test-logs:
   optical-data-network-config:
   optical-data-network-data:
   optical-data-network-logs:

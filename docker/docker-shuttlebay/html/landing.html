@@ -91,8 +91,8 @@
             
             <p><strong>Option 2 - Manual Proxy:</strong></p>
             <div class="copy-container">
-                <code>steamdeck.fritz.box:8443</code>
-                <button class="copy-btn" onclick="copyToClipboard('steamdeck.fritz.box:8443')" title="Copy to clipboard">📋</button>
+                <code>steamdeck.fritz.box:3128</code>
+                <button class="copy-btn" onclick="copyToClipboard('steamdeck.fritz.box:3128')" title="Copy to clipboard">📋</button>
             </div>
             <p><strong>Type:</strong> Forward Proxy (CONNECT method)</p>
         </div>
@@ -106,8 +106,8 @@
             </div>
             <em>OR manually set proxy to: 
                 <span class="copy-container" style="display: inline-flex; vertical-align: middle;">
-                    steamdeck.fritz.box:8443
-                    <button class="copy-btn" onclick="copyToClipboard('steamdeck.fritz.box:8443')" title="Copy proxy address">📋</button>
+                    steamdeck.fritz.box:3128
+                    <button class="copy-btn" onclick="copyToClipboard('steamdeck.fritz.box:3128')" title="Copy proxy address">📋</button>
                 </span>
             </em>
         </div>
@@ -119,7 +119,7 @@
         </div>
 
         <div class="test-link">
-            <a href="https://www-lcars.vsagcrd.org" target="_blank">Test HTTPS Connection</a>
+            <a href="https://console.vsagcrd.org" target="_blank">Test HTTPS Connection</a>
         </div>
 
         <details style="margin: 30px 0; border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
@@ -130,7 +130,7 @@
     
     // Routes for internal LCARS services - use forward proxy
     if (dnsDomainIs(host, ".vsagcrd.org")) {
-        return "PROXY steamdeck.fritz.box:8443";
+        return "PROXY steamdeck.fritz.box:3128";
     }
     
     // All other traffic - direct connection
@@ -139,7 +139,7 @@
             </div>
             <p style="margin-top: 10px; font-size: 14px; color: #666;">
                 <strong>How it works:</strong><br>
-                • <code>*.vsagcrd.org</code> domains → Forward proxy (steamdeck.fritz.box:8443)<br>
+                • <code>*.vsagcrd.org</code> domains → Forward proxy (steamdeck.fritz.box:3128)<br>
                 • All other websites → Direct connection (no proxy)
             </p>
         </details>

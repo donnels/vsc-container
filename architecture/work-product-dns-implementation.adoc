@@ -46,7 +46,7 @@ Structured environment variable management:
 [source,bash]
 ----
 # Domain configuration
-WARP_DOMAIN=warp.vsagcrd.org
+CERT_DOMAIN=warp.vsagcrd.org
 BASE_DOMAIN=vsagcrd.org
 
 # Individual IP assignments for Docker Compose
@@ -90,7 +90,6 @@ Automated generation produces:
 172.20.0.20 deflector.warp.vsagcrd.org
 172.20.0.30 shuttlebay.warp.vsagcrd.org
 172.20.0.40 transporter.warp.vsagcrd.org
-172.20.0.41 transporter-test.warp.vsagcrd.org
 172.20.0.50 console.warp.vsagcrd.org
 172.20.0.60 optical-data-network.warp.vsagcrd.org
 172.20.0.60 odn.warp.vsagcrd.org
@@ -168,10 +167,6 @@ Tested using `test-dns-decoder.sh` validation script.
 
 | transporter
 | transporter.warp.vsagcrd.org
-| -
-
-| transporter-test
-| transporter-test.warp.vsagcrd.org
 | -
 
 | console

@@ -12,24 +12,11 @@ RUN mkdir -p /etc/nginx/certs /var/www/html
 COPY html/ /var/www/html/
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Create startup script
-RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
-    echo 'set -e' >> /docker-entrypoint.sh && \
-    echo 'echo "=== Nginx Web Server Startup ==="' >> /docker-entrypoint.sh && \
-    echo '' >> /docker-entrypoint.sh && \
-    echo '# Wait for Let'\''s Encrypt certificates' >> /docker-entrypoint.sh && \
-    echo 'echo "Waiting for Let'\''s Encrypt certificates..."' >> /docker-entrypoint.sh && \
-    echo 'while [ ! -f /etc/letsencrypt/live/www/fullchain.pem ]; do' >> /docker-entrypoint.sh && \
-    echo '  echo "Waiting for certificates to be generated..."' >> /docker-entrypoint.sh && \
-    echo '  sleep 5' >> /docker-entrypoint.sh && \
-    echo 'done' >> /docker-entrypoint.sh && \
-    echo 'echo "Certificates found, starting nginx..."' >> /docker-entrypoint.sh && \
-    echo '' >> /docker-entrypoint.sh && \
-    echo '# Start nginx' >> /docker-entrypoint.sh && \
-    echo 'exec nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
-    chmod +x /docker-entrypoint.sh
+# Copy startup script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
-# Expose HTTP and HTTPS ports
-EXPOSE 80 443
+# Expose HTTP and NOT HTTPS ports
+EXPOSE 80
 
 CMD ["/docker-entrypoint.sh"]

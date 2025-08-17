@@ -23,11 +23,11 @@ RUN echo '#!/bin/bash' > /docker-entrypoint.sh && \
     echo '' >> /docker-entrypoint.sh && \
     echo '# Process nginx configuration template' >> /docker-entrypoint.sh && \
     echo 'echo "Processing nginx configuration..."' >> /docker-entrypoint.sh && \
-    echo 'envsubst '\''${WARP_DOMAIN}'\'' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf' >> /docker-entrypoint.sh && \
+    echo 'envsubst '\''${CERT_DOMAIN}'\'' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf' >> /docker-entrypoint.sh && \
     echo '' >> /docker-entrypoint.sh && \
     echo '# Start nginx' >> /docker-entrypoint.sh && \
     echo 'echo "Starting LCARS Console web server..."' >> /docker-entrypoint.sh && \
-    echo 'echo "LCARS Console: http://console.${WARP_DOMAIN:-warp.vsagcrd.org}"' >> /docker-entrypoint.sh && \
+    echo 'echo "LCARS Console: http://console.${CERT_DOMAIN:-warp.vsagcrd.org}"' >> /docker-entrypoint.sh && \
     echo 'exec nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
     chmod +x /docker-entrypoint.sh
 

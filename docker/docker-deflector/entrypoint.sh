@@ -7,35 +7,25 @@ if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
   exit 1
 fi
 
+if [ -z "$WARPBUBBLE_SERVICES" ]; then
+  echo "WARPBUBBLE_SERVICES is not set!"
+  exit 1
+fi
+
 cat <<EOF > /etc/letsencrypt/cloudflare.ini
 dns_cloudflare_api_token = $CLOUDFLARE_API_TOKEN
 EOF
 chmod 600 /etc/letsencrypt/cloudflare.ini
 
-# Function to generate certificate
+# Function to generate certificate for a service and its aliases
 generate_cert() {
-  local domains="$1"
-  local cert_name="$2"
-  
-  echo "Generating certificate for: $domains (name: $cert_name)"
-  
-  # Parse domains for certbot - build arguments properly
-  DOMAINS_ARG=""
-  IFS=','
-  for domain in $domains; do
-    # Trim whitespace and add -d flag
-    domain=$(echo "$domain" | tr -d ' ')
-    if [ -z "$DOMAINS_ARG" ]; then
-      DOMAINS_ARG="-d $domain"
-    else
-      DOMAINS_ARG="$DOMAINS_ARG -d $domain"
-    fi
+  local cert_name="$1"
+  shift
+  local domains="-d $cert_name"
+  for alias_fqdn in "$@"; do
+    domains="$domains -d $alias_fqdn"
   done
-  unset IFS
-  
-  echo "Running: certbot certonly --dns-cloudflare --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini --cert-name $cert_name --non-interactive --agree-tos --email admin@$DOMAIN $DOMAINS_ARG"
-  
-  # Generate certificate with specific name
+  echo "Generating certificate for: $cert_name $* (name: $cert_name)"
   /opt/certbot/bin/certbot certonly \
     --dns-cloudflare \
     --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini \
@@ -44,41 +34,34 @@ generate_cert() {
     --non-interactive \
     --agree-tos \
     --email "admin@$DOMAIN" \
-    $DOMAINS_ARG
+    $domains
 }
 
-# Generate web server certificate (for nginx HTTPS menu)
-if [ "${GENERATE_WEB_CERT:-true}" = "true" ]; then
-  if [ -n "$WEB_DOMAINS" ]; then
-    generate_cert "$WEB_DOMAINS" "$WEB_CERT_NAME"
-  else
-    echo "WEB_DOMAINS not set, skipping web certificate"
+# Loop over WARPBUBBLE_SERVICES and generate certs
+for entry in $(echo "$WARPBUBBLE_SERVICES" | tr ',' '\n'); do
+  service=$(echo "$entry" | cut -d':' -f1)
+  cert_name="$service.$CERT_DOMAIN"
+  alias_fields=$(echo "$entry" | cut -d':' -f2-)
+  alias_fqdns=""
+  if [ -n "$alias_fields" ]; then
+    # Split aliases by ':' and append to alias_fqdns string
+    oldIFS="$IFS"
+    IFS=':'
+    for alias in $alias_fields; do
+      if [ -n "$alias" ]; then
+        alias_fqdns="$alias_fqdns $alias.$CERT_DOMAIN"
+      fi
+    done
+    IFS="$oldIFS"
   fi
-fi
-
-# Generate proxy certificate
-if [ "${GENERATE_PROXY_CERT:-false}" = "true" ]; then
-  if [ -n "$PROXY_DOMAINS" ]; then
-    generate_cert "$PROXY_DOMAINS" "$PROXY_CERT_NAME"
-  else
-    echo "PROXY_DOMAINS not set, skipping proxy certificate"
-  fi
-fi
-
-# Generate VS Code certificate
-if [ "${GENERATE_VSCODE_CERT:-true}" = "true" ]; then
-  if [ -n "$VSCODE_DOMAINS" ]; then
-    generate_cert "$VSCODE_DOMAINS" "$VSCODE_CERT_NAME"
-  else
-    echo "VSCODE_DOMAINS not set, skipping VS Code certificate"
-  fi
-fi
+  # Call generate_cert with cert_name and all aliases as arguments
+  generate_cert "$cert_name" $alias_fqdns
+done
 
 echo "Certificate generation complete!"
 echo "Available certificates:"
 ls -la /etc/letsencrypt/live/
 
-echo "Fixing certificate permissions for container access..."
 # Make certificates readable by all users (needed for non-root containers)
 find /etc/letsencrypt/live -name "*.pem" -exec chmod 644 {} \;
 find /etc/letsencrypt/archive -name "*.pem" -exec chmod 644 {} \;

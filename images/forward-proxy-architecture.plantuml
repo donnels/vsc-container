@@ -45,7 +45,7 @@ note over dns
 end note
 
 note over deflector
-**Deflector Array (Tools Profile)**
+**Deflector Array**
 - IP: 172.20.0.13
 - Generates Let's Encrypt certificates
 - DNS-01 challenge via Cloudflare

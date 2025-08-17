@@ -3,7 +3,7 @@ function FindProxyForURL(url, host) {
     
     // Routes for internal LCARS services - use forward proxy
     if (dnsDomainIs(host, ".vsagcrd.org")) {
-        return "PROXY steamdeck.fritz.box:8443";
+        return "PROXY steamdeck.fritz.box:3128";
     }
     
     // All other traffic - direct connection

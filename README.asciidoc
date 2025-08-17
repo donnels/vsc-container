@@ -70,7 +70,7 @@ cp docker/.env.template docker/.env
 
 # Generate VSCode certificate only
 cd docker
-podman-compose --profile tools up cert-generator
+podman-compose up cert-generator
 ----
 
 === Step 2: Start Reverse Proxy and VSCode
@@ -163,7 +163,7 @@ cd vsc-container/docker
 [source,bash]
 ----
 # Edit docker/.env with your Cloudflare credentials and domain configuration
-docker-compose --profile tools run deflector
+docker-compose run deflector
 ----
 
 . Configure proxy environment:
@@ -186,7 +186,7 @@ cp docker-vsc/.env.template docker-vsc/.env
 +
 [source,bash]
 ----
-docker-compose --profile dev up -d
+docker-compose up -d
 ----
 
 . Access VS Code at: `https://your-subdomain.vsagcrd.org` (standard HTTPS port 443)
@@ -217,8 +217,7 @@ image::images/proxy-deployment-sequence.png[Production Architecture Flow, 800, 6
 **Squid Forward Proxy** (`docker-transporter/`)::
 - Forward proxy with HTTPS tunneling for `.vsagcrd.org` domains
 - Squid-based proxy for mobile network traversal
-- Test instance available (`docker-transporter-test/`)
-- Standard ports: 3128 (main), 3129 (test)
+- Standard ports: 3128 (main)
 
 **VS Code Service** (`docker-engineering-console/`)::
 - Code-server accessible as `engineering-console.warp.vsagcrd.org` internally
@@ -232,12 +231,7 @@ image::images/proxy-deployment-sequence.png[Production Architecture Flow, 800, 6
 - Cloudflare DNS-01 challenge for automated domain validation
 - Configurable certificate names and domain sets for each service
 - Automated certificate renewal capabilities
-- On-demand execution via Docker Compose profiles
 - Accessible as `deflector.warp.vsagcrd.org` internally
-- Configurable certificate names and domain sets for each service
-- Automated certificate renewal capabilities
-- On-demand execution via Docker Compose profiles
-- Accessible as `certbot.vsagcrd.org` internally
 
 === Network Architecture
 
@@ -283,10 +277,6 @@ docker/
 │   ├── Dockerfile
 │   ├── squid6.conf.template
 │   └── squid-start.sh
-├── docker-transporter-test/     # Squid test instance
-│   ├── Dockerfile
-│   ├── squid-ubuntu-hybrid.conf.template
-│   └── ubuntu-init.sh
 ├── docker-shuttlebay/           # Landing page (Nginx)
 │   ├── Dockerfile
 │   ├── nginx.conf
@@ -356,7 +346,7 @@ GENERATE_VSCODE_CERT=true
 +
 [source,bash]
 ----
-docker-compose --profile tools run cert-generator
+docker-compose run cert-generator
 ----
 
 . Certificates are automatically available to the proxy via Docker volume
@@ -367,7 +357,7 @@ Certificates can be renewed by re-running the certificate generator:
 
 [source,bash]
 ----
-docker-compose --profile tools run cert-generator
+docker-compose run cert-generator
 docker-compose restart proxy
 ----
 
@@ -483,7 +473,7 @@ docker-compose logs
 # Specific services
 docker-compose logs proxy
 docker-compose logs code-server
-docker-compose --profile tools logs cert-generator
+docker-compose logs cert-generator
 ----
 
 === Certificate Management
@@ -501,7 +491,7 @@ Automate renewal with cron:
 [source,bash]
 ----
 # Add to crontab for monthly renewal
-0 0 1 * * cd /path/to/project/docker && docker-compose --profile tools run cert-generator && docker-compose restart proxy
+0 0 1 * * cd /path/to/project/docker && docker-compose run cert-generator && docker-compose restart proxy
 ----
 
 === Troubleshooting
@@ -518,7 +508,7 @@ Automate renewal with cron:
 [source,bash]
 ----
 # Test certificate generation
-docker-compose --profile tools run cert-generator
+docker-compose run cert-generator
 
 # Verify proxy configuration
 docker-compose exec proxy nginx -t

@@ -18,4 +18,4 @@ for ext in $EXT_LIST; do
 done
 
 echo "Extension installation complete."
-echo "Using Let's Encrypt certificates from /etc/letsencrypt/live/\${DOMAIN}/"
+echo "Using Let's Encrypt certificates from /etc/letsencrypt/live/\${CERT_NAME}/"

@@ -1,24 +1,24 @@
 FROM debian:stable-slim
 
-# Install DNS utilities and networking tools
-RUN apt-get update && apt-get install -y \
-    dnsutils \
-    iputils-ping \
-    curl \
-    netcat-traditional \
-    host \
-    dig \
-    nslookup \
-    traceroute \
-    telnet \
-    && rm -rf /var/lib/apt/lists/*
+LABEL maintainer="Warp Bubble Team"
 
-# Copy test script
+# Install required tools
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        dnsutils \
+        iproute2 \
+        iputils-ping \
+        net-tools \
+        curl \
+        ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy diagnostic script
 COPY dns-diagnostic.sh /usr/local/bin/dns-diagnostic.sh
 RUN chmod +x /usr/local/bin/dns-diagnostic.sh
 
 # Set working directory
 WORKDIR /diagnostics
 
-# Default command runs the diagnostic script
+# Set entrypoint to run the diagnostic script
 CMD ["/usr/local/bin/dns-diagnostic.sh"]

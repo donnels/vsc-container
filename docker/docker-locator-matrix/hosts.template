@@ -1,26 +1,23 @@
-# CoreDNS hosts file for ${WARP_DOMAIN} internal network
+# CoreDNS hosts file for ${CERT_DOMAIN} internal network
 # Format: IP_address canonical_hostname [aliases...]
 
 # DNS server (LOCATOR-MATRIX)
-${WARPBUBBLE_IP_LOCATOR_MATRIX} locator-matrix.${WARP_DOMAIN} dns.${WARP_DOMAIN}
+${WARPBUBBLE_IP_LOCATOR_MATRIX} locator-matrix.${CERT_DOMAIN} dns.${CERT_DOMAIN}
 
 # VS Code server (ENGINEERING CONSOLE)
-${WARPBUBBLE_IP_ENGINEERING_CONSOLE} engineering-console.${WARP_DOMAIN} vscode.${WARP_DOMAIN}
+${WARPBUBBLE_IP_ENGINEERING_CONSOLE} engineering-console.${CERT_DOMAIN} vscode.${CERT_DOMAIN}
 
 # Certificate generator (DEFLECTOR)
-${WARPBUBBLE_IP_DEFLECTOR} deflector.${WARP_DOMAIN}
+${WARPBUBBLE_IP_DEFLECTOR} deflector.${CERT_DOMAIN}
 
 # Nginx web server - SHUTTLEBAY (landing page and HTTPS menu)
-${WARPBUBBLE_IP_SHUTTLEBAY} shuttlebay.${WARP_DOMAIN}
+${WARPBUBBLE_IP_SHUTTLEBAY} shuttlebay.${CERT_DOMAIN}
 
 # Squid forward proxy (TRANSPORTER)
-${WARPBUBBLE_IP_TRANSPORTER} transporter.${WARP_DOMAIN}
-
-# Ubuntu test proxy (TRANSPORTER-TEST)
-${WARPBUBBLE_IP_TRANSPORTER_TEST} transporter-test.${WARP_DOMAIN}
+${WARPBUBBLE_IP_TRANSPORTER} transporter.${CERT_DOMAIN}
 
 # LCARS Console (CONSOLE - Star Trek themed operations interface)
-${WARPBUBBLE_IP_CONSOLE} console.${WARP_DOMAIN}
+${WARPBUBBLE_IP_CONSOLE} console.${CERT_DOMAIN}
 
 # MQTT Message Bus (OPTICAL DATA NETWORK)
-${WARPBUBBLE_IP_OPTICAL_DATA_NETWORK} optical-data-network.${WARP_DOMAIN} odn.${WARP_DOMAIN}
+${WARPBUBBLE_IP_OPTICAL_DATA_NETWORK} optical-data-network.${CERT_DOMAIN} odn.${CERT_DOMAIN}

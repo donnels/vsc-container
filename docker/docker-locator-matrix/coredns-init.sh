@@ -4,27 +4,27 @@ set -e
 echo "=== CoreDNS Init (Variable-Driven DNS) ==="
 
 # Set default values if environment variables are not provided
-WARP_DOMAIN="${WARP_DOMAIN:-warp.vsagcrd.org}"
+CERT_DOMAIN="${CERT_DOMAIN:-warp.vsagcrd.org}"
 BASE_DOMAIN="${BASE_DOMAIN:-vsagcrd.org}"
 
 # Process Corefile template with environment variables
 if [ -f "/etc/coredns/Corefile" ]; then
     echo "Processing Corefile template..."
-    envsubst < /etc/coredns/Corefile > /etc/coredns/Corefile.processed
-    mv /etc/coredns/Corefile.processed /etc/coredns/Corefile
+    envsubst < /etc/coredns/Corefile > /tmp/Corefile.processed
 fi
 
 # Generate hosts file from environment variables
+HOSTS_FILE="/tmp/hosts"
 echo "Generating hosts file from WARPBUBBLE_SERVICES..."
-echo "# Auto-generated hosts file from environment variables" > /etc/coredns/hosts
-echo "# Generated at: $(date)" >> /etc/coredns/hosts
-echo "# Domain: $WARP_DOMAIN" >> /etc/coredns/hosts
-echo "" >> /etc/coredns/hosts
+echo "# Auto-generated hosts file from environment variables" > "$HOSTS_FILE"
+echo "# Generated at: $(date)" >> "$HOSTS_FILE"
+echo "# Domain: $CERT_DOMAIN" >> "$HOSTS_FILE"
+echo "" >> "$HOSTS_FILE"
 
 # Check if WARPBUBBLE_SERVICES is defined
 if [ -z "$WARPBUBBLE_SERVICES" ]; then
     echo "Warning: WARPBUBBLE_SERVICES not defined, creating empty hosts file"
-    touch /etc/coredns/hosts
+    touch "$HOSTS_FILE"
 else
     # Decode WARPBUBBLE_SERVICES compact format
     # Split on comma, handle service:alias format
@@ -40,13 +40,13 @@ else
             
             if [ -n "$ip_value" ]; then
                 # Primary hostname
-                echo "$ip_value $service_name.$WARP_DOMAIN" >> /etc/coredns/hosts
-                echo "Added: $service_name.$WARP_DOMAIN -> $ip_value"
+                echo "$ip_value $service_name.$CERT_DOMAIN" >> "$HOSTS_FILE"
+                echo "Added: $service_name.$CERT_DOMAIN -> $ip_value"
                 
                 # Add alias if specified and different from service name
                 if [ -n "$alias_name" ] && [ "$alias_name" != "$service_name" ]; then
-                    echo "$ip_value $alias_name.$WARP_DOMAIN" >> /etc/coredns/hosts
-                    echo "Added: $alias_name.$WARP_DOMAIN -> $ip_value"
+                    echo "$ip_value $alias_name.$CERT_DOMAIN" >> "$HOSTS_FILE"
+                    echo "Added: $alias_name.$CERT_DOMAIN -> $ip_value"
                 fi
             else
                 echo "Warning: No IP found for $service_name (variable: $ip_var)"
@@ -57,8 +57,10 @@ fi
 
 echo ""
 echo "Generated hosts file:"
-cat /etc/coredns/hosts
+cat "$HOSTS_FILE"
 
 # Start CoreDNS with the provided arguments
+# Ensure CoreDNS config references /tmp/hosts if needed
+# (Update Corefile template to use /tmp/hosts)
 echo "Starting CoreDNS for variable-driven DNS resolution..."
-exec /usr/local/bin/coredns -conf /etc/coredns/Corefile "$@"
+exec /usr/local/bin/coredns -conf /tmp/Corefile.processed "$@"
