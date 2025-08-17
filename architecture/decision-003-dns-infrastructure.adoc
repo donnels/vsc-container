@@ -1,164 +1,133 @@
-= ARCID-003: Pure Docker DNS Infrastructure Within Warp Bubble
-:toc: right
+:ARC-ID: 003
+:ARC-TITLE: Variable-Driven CoreDNS Primary DNS Infrastructure
+:ARC-TOPIC: network
+:ARC-STATUS: accepted
 
-== Status
-Accepted (Evolved from initial DNS strategy)
+[#ARCID-{arc-id}]
+= {arc-id} - {arc-title}
+This decision is part of the {arc-topic} architecture.
 
 == Context
-Services within the warp bubble need consistent DNS resolution for *.warp.vsagcrd.org domains regardless of external network configuration. Certificate validation requires proper DNS resolution to match certificate subject names with actual service endpoints.
 
-The warp bubble development environment initially implemented both Docker Compose network aliases and CoreDNS with custom hosts files for internal service discovery. This created redundancy and complexity, as both systems were providing identical DNS resolution for internal `.warp.vsagcrd.org` domains.
+Services within warp bubble require consistent DNS resolution for `*.warp.vsagcrd.org` domains. Certificate validation requires proper DNS resolution matching certificate subject names with service endpoints.
 
-Analysis showed Docker Compose automatically provides robust DNS resolution for:
-- Service names (optical-data-network, engineering-console, etc.)
-- Network aliases (all .warp.vsagcrd.org entries)
-- Reverse lookups for container IPs
-- Cross-container communication
-
-However, containers still require external DNS resolution to reach internet resources (package repositories, external APIs, etc.), and external DNS servers cannot resolve internal warp bubble service names.
+Docker Compose provides automatic forward DNS resolution via network aliases. However, Docker cannot perform reverse DNS lookups (IP → hostname) for custom domain aliases. Applications requiring reverse DNS verification need bidirectional DNS resolution that Docker cannot provide.
 
 == Problem Statement / Motivation
-The evolution of DNS infrastructure in the warp bubble addressed multiple generations of challenges:
 
-=== Initial Challenge (External DNS Dependency)
-External DNS servers cannot resolve internal warp bubble service names (e.g., locator-matrix.warp.vsagcrd.org, console.warp.vsagcrd.org). Services need reliable name resolution for inter-service communication and certificate validation. External network changes should not affect internal service discovery.
+The warp bubble DNS infrastructure must support:
 
-=== Intermediate Challenge (Dual DNS Implementation)
-The dual DNS implementation created:
-- **Configuration Duplication**: Same hostnames defined in both docker-compose.yaml aliases and CoreDNS hosts.template
-- **Maintenance Overhead**: Updates required in multiple places for hostname changes
-- **Complexity**: Understanding which DNS system handled which queries
-- **Resource Usage**: Running CoreDNS when Docker's built-in DNS could handle internal resolution
-
-The question became: Is CoreDNS necessary, and if so, what should its role be?
+1. **Forward DNS Resolution**: `engineering-console.warp.vsagcrd.org` → `172.20.0.10`
+2. **Reverse DNS Resolution**: `172.20.0.10` → `engineering-console.warp.vsagcrd.org`
+3. **External DNS Resolution**: Internet domains for package repositories, APIs, etc.
+4. **Configuration Simplicity**: Single source of truth for IP/hostname mappings
+5. **Maintainability**: Human-readable configuration that minimizes duplication
 
 == Alternatives Considered
 
+**Knockout Criteria**: All options must support both forward DNS (hostname → IP) and reverse DNS (IP → hostname) resolution for `*.warp.vsagcrd.org` domains.
+
 === External DNS with Public Records
+
+Considered but not viable due to security risks and inability to resolve to private IP addresses.
+
+=== Pure Docker DNS
+
+**FAILS KNOCKOUT CRITERIA**: Cannot perform reverse DNS lookups for custom domain aliases.
+
 .Pro
-* No additional infrastructure
-* Works from anywhere
-* Standard DNS resolution
-
-.Con
-* Exposes internal network topology
-* Security risk with public DNS records
-* External dependency for internal services
-* Cannot resolve to private IP addresses
-
-=== Option 1: Keep CoreDNS, Remove Aliases
-.Pro
-* Centralized DNS control
-* Single source of truth for hostname resolution
-* Custom DNS logic possible
-* Full control over DNS resolution
-* Private network topology hidden
-
-.Con
-* Lose Docker Compose's automatic service discovery
-* Manual maintenance of hosts files
-* Additional complexity for simple container-to-container communication
-* DNS server configuration complexity
-
-=== Option 2: Remove CoreDNS Completely (Chosen)
-.Pro
-* Simplest configuration
-* Let Docker handle all internal DNS automatically
-* Reduced resource usage
-* No additional service dependencies
+* Simplest configuration with zero maintenance DNS infrastructure
 * Automatic external DNS via host configuration
-* Zero maintenance DNS infrastructure
 
 .Con
-* No centralized DNS caching
-* No centralized DNS monitoring
-* No custom DNS forwarding logic
+* **No reverse DNS support for `*.warp.vsagcrd.org` domains**
+* No centralized DNS monitoring or caching
 
-=== Option 3: Hybrid Approach
+=== CoreDNS Only (Remove Docker Aliases)
+
 .Pro
-* Docker handles internal DNS (automatic, no maintenance)
-* CoreDNS handles external DNS forwarding with caching
-* Clear separation of concerns
-* Maintains monitoring and health check capabilities
-* Preserves mobile network adaptability (Fritz Box detection)
-* Enhanced security through private external DNS forwarding
-* Reliable service discovery for internal communications
+* **Complete Bidirectional Resolution**: Supports both forward and reverse DNS for custom domains
+* Centralized DNS control with single source of truth
+* Full control over DNS resolution logic
 
 .Con
-* Still runs an additional service
-* Slightly more complex than pure Docker DNS
-* Additional maintenance overhead
-* Unnecessary complexity for basic requirements
+* Lose Docker Compose automatic service discovery and readability
+* Manual maintenance of hosts files without variable bridge
+* No fallback mechanism if CoreDNS fails
+* Cannot test partial environment without DNS server
+
+=== Hybrid DNS Routing (Docker Forward + CoreDNS Reverse)
+
+.Pro
+* **Complete Bidirectional Resolution**: Combined Docker + CoreDNS provides both forward and reverse
+* Docker handles forward DNS automatically
+* CoreDNS provides reverse DNS capability
+
+.Con
+* Complex DNS routing between multiple systems
+* Configuration duplication between aliases and hosts files
+* Performance overhead from DNS routing decisions
+* Difficult to monitor and troubleshoot DNS issues
+
+=== Variable-Driven CoreDNS Primary (Chosen)
+
+.Pro
+* **Complete Bidirectional Resolution**: Supports both forward and reverse DNS for custom domains
+* Unified DNS resolution through single server eliminates routing complexity
+* Environment variables provide single source of truth for IP/hostname mappings
+* Docker aliases retained for compose readability and fallback capability
+* Partial environment testing possible without CoreDNS (forward-only via aliases)
+* **Ad-hoc Testing Flexibility**: CLI-started containers work immediately with forward DNS via Docker's built-in DNS, can add CoreDNS flags only when reverse DNS needed
+* Performance optimization with centralized caching for all queries
+* Automatic hosts file generation from environment variables
+
+.Con
+* Single point of failure for all DNS resolution
+* Additional service dependency and resource usage
+* Environment variable management complexity
 
 == Decision Outcome
-We will implement a **Pure Docker DNS Strategy** within the warp bubble where:
 
-* **Docker Compose network aliases** handle all internal `.warp.vsagcrd.org` service discovery
-* **Docker's built-in DNS** handles external internet resolution automatically
-* Remove CoreDNS (locator-matrix) service entirely
-* Eliminate custom DNS server dependency
-* Use the subdomain `warp.vsagcrd.org` for all warp bubble services
+We will implement a **Variable-Driven CoreDNS Primary Strategy** where:
+
+* **CoreDNS (locator-matrix)** serves as the primary DNS server handling all resolution: forward, reverse, and external
+* **Environment variables** provide single source of truth bridging Docker Compose configuration to CoreDNS hosts file generation
+* **Docker Compose network aliases** remain for readability and fallback capability but are not used for DNS resolution
+* **Automatic hosts file generation** from compact service definitions in environment variables
+* All warp bubble services use the subdomain pattern `*.warp.vsagcrd.org`
 
 === Justification
-This pure Docker approach leverages Docker's proven automatic service discovery and built-in external DNS resolution. It eliminates unnecessary complexity while maintaining all functional requirements for certificate validation, service discovery, and external connectivity. Docker automatically handles both internal service resolution via network aliases and external internet access via the host's DNS configuration.
 
-=== Implementation Details
+Since CoreDNS must be in-line for DNS resolution to provide reverse DNS lookups for custom domain aliases, it should handle all DNS queries for optimal performance and consistency. Environment variables serve as the bridge between Docker Compose configuration convenience and CoreDNS hosts file generation, maintaining readability while ensuring bidirectional DNS resolution.
 
-==== Docker Compose Network Aliases
-* Retain all existing network aliases for service discovery
-* Remove custom DNS server configuration from all containers
-* Internal communication uses automatic Docker DNS
-* External resolution uses Docker's built-in DNS forwarding to host
+=== Consequences
 
-==== Simplified Service Architecture
-* Remove locator-matrix (CoreDNS) service entirely
-* All containers use Docker's default DNS behavior
-* Network aliases provide FQDN resolution for certificate validation
-* Host DNS configuration automatically handles external resolution
+.Positive
+* **Unified DNS Resolution**: Single DNS server handles all queries for consistency
+* **Complete Bidirectional Resolution**: Both forward and reverse DNS work properly for custom domains
+* **Variable-Driven Configuration**: Environment variables provide single source of truth for IP/hostname mappings
+* **Application Compatibility**: Supports applications requiring reverse DNS verification
+* **DNS Caching**: CoreDNS provides caching for all queries (internal and external)
+* **Performance Optimization**: No DNS routing complexity, all queries resolved by one server
+* **Automatic Generation**: Hosts file automatically generated from environment variables
+* **Maintainability**: Change IP in one variable affects both compose and CoreDNS
 
-==== Testing Strategy
-* Diagnostic-array container for comprehensive DNS testing
-* Validation of both internal service discovery and external resolution
-* Forward and reverse DNS lookup verification
-* External connectivity testing (package installation, git operations)
+.Negative
+* **Single Point of Failure**: CoreDNS service must be running for all DNS resolution
+* **Additional Service Dependency**: Cannot use Docker's built-in DNS as fallback
+* **Resource Usage**: CoreDNS consumes additional memory and CPU for all DNS queries
+* **Configuration Complexity**: Environment variable management required
 
-== Consequences
+.Neutral
+* **External DNS Behavior**: All external queries forwarded through CoreDNS to host DNS configuration
+* **Star Trek Theming**: All themed hostnames preserved via environment variable configuration
+* **Docker Aliases**: Network aliases retained for compatibility but not used for DNS resolution
 
-=== Positive
-* **Maximum Simplicity**: Elimination of all custom DNS infrastructure
-* **Automatic Service Discovery**: Docker handles internal DNS without any configuration
-* **Zero Maintenance**: No DNS configuration files to maintain
-* **Reduced Resource Usage**: No additional DNS service running
-* **Reliability**: Leverages Docker's proven built-in DNS mechanisms
-* **Enhanced Security**: Private network topology hidden from external DNS
-* **Network Independence**: External network changes don't affect internal service discovery
-* **Simplified Architecture**: Fewer moving parts, easier to understand and debug
+=== Derived / Related Decisions
 
-=== Negative
-* **No DNS Caching**: Each external query hits upstream DNS directly
-* **No DNS Monitoring**: Cannot track DNS query patterns or performance
-* **No Custom DNS Logic**: Cannot implement special DNS forwarding rules
-
-=== Neutral
-* **External DNS Behavior**: Uses host DNS configuration automatically
-* **Star Trek Theming**: All themed hostnames preserved via Docker aliases
-* **Certificate Validation**: Proper DNS resolution maintained for certificate subject names
-
-== Compliance
 This decision enhances:
 * <<ARCID-001>>: HTTPS Certificates - enables proper certificate validation through reliable DNS resolution
 * <<ARCID-002>>: Forward Proxy - supports proxy deployment with internal service discovery
 * <<ARCID-004>>: Landing Zone - provides DNS infrastructure for landing zone server external access
-* <<ARCID-005>>: Centralized Configuration - simplifies DNS configuration management
-* <<ARCID-011>>: Star Trek Naming - preserves all themed hostnames via Docker aliases
-
-== Testing
-A diagnostic-array container validates:
-1. Internal service discovery via all aliases
-2. External DNS resolution via host configuration
-3. Forward and reverse DNS lookups
-4. Cross-container communication
-5. External connectivity (package repositories, git operations)
-
-== Notes
-This pure Docker DNS approach represents the ultimate evolution from complex dual-DNS systems to the simplest possible configuration that still meets all functional requirements. By eliminating custom DNS infrastructure entirely, we achieve maximum reliability while reducing maintenance overhead to zero. Docker's built-in capabilities prove sufficient for all warp bubble DNS requirements including security, service discovery, and external connectivity.
+* <<ARCID-005>>: Centralized Configuration - implements variable-driven configuration management
+* <<ARCID-011>>: Star Trek Naming - preserves all themed hostnames via environment variables

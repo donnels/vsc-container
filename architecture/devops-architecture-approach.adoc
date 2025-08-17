@@ -1,0 +1,163 @@
+= DevOps-Aligned Architecture Approach
+:doctype: book
+:toc: left
+:toclevels: 3
+:sectnums:
+:icons: font
+
+== Document Information
+
+[cols="2,3"]
+|===
+| Document Type | Architecture Approach Definition
+| Subject Area | Development Methodology - Architecture Process
+| Architecture Domain | Enterprise Architecture Governance
+| TOGAF Alignment | Iterative ADM with Continuous Integration
+| Status | Active
+| Version | 1.0
+| Date | August 2025
+|===
+
+== Executive Summary
+
+Architecture decision process for warp bubble project using TOGAF's iterative ADM with experiment-driven validation. Prioritizes evidence over assumptions while maintaining TOGAF compliance.
+
+== Architecture Development Philosophy
+
+=== TOGAF-Compliant Iterative Process
+
+**TOGAF ADM Principle**: Iterative cycles with stakeholder validation
+**Our Implementation**: Rapid experimentation cycles with technical validation
+
+=== Process Steps
+
+. **Problem Identification** (TOGAF Phase A - Vision)
+. **Rapid Prototyping** (TOGAF Phase B-D - Architecture Development)
+. **Alternative Analysis** (TOGAF Phase E - Opportunities & Solutions)
+. **Decision Documentation** (TOGAF Phase F - Migration Planning)
+. **Implementation** (TOGAF Phase G - Implementation Governance)
+. **Operational Learning** (TOGAF Phase H - Architecture Change Management)
+
+== TOGAF ADM Implementation
+
+=== One-Month Project Cycle Mapping
+
+[cols="2,3,2"]
+|===
+| TOGAF Phase | Process Activity | Time Allocation
+
+| Phase A - Vision
+| Problem definition and success criteria
+| 2 days (Week 1)
+
+| Phase B-D - Architecture
+| Prototype and constraint discovery
+| 2-4 hours per issue
+
+| Phase E - Solutions
+| Alternative comparison with evidence
+| 1-2 hours per decision
+
+| Phase F - Migration
+| ADR documentation
+| 30 minutes per decision
+
+| Phase G - Governance
+| Implementation and monitoring
+| Continuous
+
+| Phase H - Change
+| Feedback integration
+| Weekly retrospective
+|===
+
+=== Documentation Strategy
+
+**Single Document per Major Decision**: Architecture Decision Record (ADR)
+**Trigger**: Cross-service impact OR reusable pattern OR blocking constraint
+**Content**: Problem, tested alternatives, evidence, decision
+**Skip**: Implementation-only decisions, obvious technical choices
+
+**Terseness Rule**: Write like Hemingway, not Dickens. Remove superfluous words, redundant phrases, bureaucratic language. Humans and LLMs forget page one by page ten.
+
+== Process Controls
+
+=== Experiment Boundaries
+
+**Time Limits**: 2-4 hours per prototype (not days)
+**Resource Limits**: Single developer, existing tools
+**Scope Limits**: Single blocking constraint per experiment
+**Kill Criteria**: No progress after 2 hours OR simpler alternative exists
+
+=== Decision Triggers
+
+Document only when:
+- Affects multiple services (cross-cutting concern)
+- Creates reusable pattern for future use
+- Blocks implementation progress
+- Has security or compliance implications
+
+Skip documentation for:
+- Single-service implementation details
+- Standard technology usage
+- Obvious constraint workarounds
+
+=== Conflict Resolution
+
+**Technical disagreement**: 1-hour spike comparison, pick and move on
+**Scope creep**: Defer to post-delivery iteration
+**Unknown constraints**: Assume simplest case, validate later
+
+=== Learning Integration
+
+**Document pattern**: If solution applies to >1 service
+**Document constraint**: If blocks future work
+**Skip documentation**: Implementation-specific details
+
+== TOGAF Compliance
+
+=== Architecture Repository
+- ADRs stored in version control with code
+- Cross-references maintained automatically
+- Decision history preserved with implementation
+
+=== Stakeholder Management
+* Individual developer: Implementation choices <2 hours
+** Grab a coffee
+* Project owner: Component decisions <4 hours
+** Come back after lunch
+* Business owner: Scope/feature decisions <24 hours
+** Sleep over it
+
+=== Architecture Governance
+- **Standards Compliance**: Automated where possible, manual review for exceptions
+- **Decision Review**: Real-time peer review preferred over formal process
+- **Change Management**: Weekly architecture retrospective
+- **Risk Management**: Time-boxed prototypes reduce implementation risk
+
+=== One-Month Timeline Alignment
+- **Week 1**: Vision phase, core infrastructure decisions
+- **Week 2-3**: Architecture development with rapid prototyping
+- **Week 4**: Implementation governance and documentation cleanup
+
+== Success Metrics
+
+=== Quantifiable Measures (One-Month Project)
+- **Decision Speed**: Problem to solution in <4 hours
+- **Documentation Overhead**: <5% of development time
+- **Blocking Issues**: <2 per week requiring architecture intervention
+- **Delivery Risk**: Project completes within 4 weeks
+
+=== When This Approach Fails
+
+**Use Traditional Upfront Architecture When:**
+- Project timeline >3 months (more planning justified)
+- Team >3 developers (coordination overhead increases)
+- Integration requirements unknown (discovery phase needed)
+- Client requires architecture approval before development
+
+== Conclusion
+
+This process adapts TOGAF's iterative ADM for rapid delivery timelines. Time-boxed experiments and selective documentation enable architecture decisions without slowing development velocity.
+
+Success depends on aggressive scope management and deferring non-blocking decisions to post-delivery iterations.

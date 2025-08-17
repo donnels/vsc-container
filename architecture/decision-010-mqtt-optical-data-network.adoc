@@ -9,147 +9,83 @@ This decision is part of the {arc-topic} architecture.
 
 == Context
 
-The warp bubble environment requires secure, efficient communication between services for certificate distribution, system status updates, configuration changes, and event notifications. Services need to communicate asynchronously without tight coupling, and the mobile nature of the platform requires a lightweight, reliable messaging solution that works across network changes.
+Warp bubble requires real-time communication between services for status updates, configuration changes, event coordination. Traditional HTTP polling creates unnecessary network overhead.
 
 == Problem Statement / Motivation
 
-The warp bubble needs a communication mechanism for:
-- HTTPS certificate distribution to services after renewal
-- System health monitoring and status updates
-- Configuration change notifications
-- Service discovery and registration events
-- Mobile platform state changes (docked/undocked, network changes)
-- VR session status and device connectivity events
-- Container lifecycle management notifications
+Services need real-time communication for:
+- Configuration updates across containers
+- Status monitoring and health checks
+- Event coordination between services
+- Real-time data sharing
 
-Traditional point-to-point communication creates tight coupling and doesn't scale well for the distributed nature of the warp bubble environment.
+HTTP polling inefficient for real-time requirements. Need lightweight pub/sub messaging for container communication.
 
 == Alternatives Considered
 
-=== SSH-Based Certificate Distribution
+=== HTTP Polling
 
 .Pro
-* Secure and well-established protocol
-* Built into most systems
-* Direct file transfer capability
-* Strong authentication mechanisms
+* Simple implementation
+* Stateless protocol
+* Wide compatibility
 
 .Con
-* Requires SSH keys management across all services
-* Point-to-point communication only
-* No pub/sub capabilities for other events
-* Complex automation for multiple services
-* Network connectivity requirements for each transfer
+* High network overhead
+* Poor real-time performance
+* Increased latency
+* Resource waste
 
-=== Filesystem Shares (NFS/CIFS/Local Volumes)
+=== Redis Pub/Sub
 
 .Pro
-* Simple file-based approach
-* Native container volume support
-* Direct file access for services
-* No additional protocols needed
+* High performance
+* Redis ecosystem benefits
+* Memory-based speed
 
 .Con
-* Single point of failure
-* No event notification mechanism
-* Security challenges with shared volumes
-* Poor scalability for mobile environments
-* No support for status updates or events
+* Additional complexity
+* Memory requirements
+* Persistence concerns
 
-=== MQTT Message Bus (Optical Data Network)
+=== MQTT Message Bus
 
 .Pro
-* Lightweight and efficient protocol
-* Native pub/sub architecture
-* Secure with TLS and authentication
-* Excellent mobile/network change resilience
-* Quality of Service (QoS) guarantees
-* Retained messages for late subscribers
-* Perfect for IoT and distributed systems
-* Supports binary payloads for certificates
-* Event-driven architecture enablement
+* Lightweight protocol
+* Pub/sub architecture
+* Quality of service levels
+* Retained messages
+* Low resource usage
 
 .Con
-* Additional service infrastructure required
-* Learning curve for MQTT concepts
-* Requires MQTT broker management
-
-=== HTTP REST APIs
-
-.Pro
-* Familiar protocol and tooling
-* Wide language support
-* Direct integration with existing web services
-
-.Con
-* Stateless nature requires polling
-* No native event notification
-* More overhead than MQTT
-* Complex service discovery
-* Poor mobile network resilience
+* Additional broker service
+* MQTT learning curve
 
 == Decision Outcome
 
-We will implement MQTT as the message bus (Optical Data Network) for the warp bubble environment, enabling secure certificate distribution, system event communication, and service coordination.
+Implement MQTT message bus using Mosquitto for real-time inter-service communication within warp bubble.
 
 === Justification
 
-MQTT provides the optimal combination of lightweight efficiency, security, and pub/sub capabilities needed for the warp bubble's distributed, mobile environment. The protocol's resilience to network changes and support for retained messages makes it ideal for certificate distribution and system coordination across containers that may restart or reconnect frequently.
+MQTT provides lightweight, efficient pub/sub messaging ideal for container environments. Retained messages enable status persistence, while QoS levels ensure reliable delivery.
 
 === Consequences
 
-* MQTT broker container added to warp bubble infrastructure
-* Secure TLS-enabled MQTT communication between services
-* Event-driven architecture for system coordination
-* Automated certificate distribution via MQTT messages
-* Real-time system monitoring and status updates
-* Reduced service coupling through pub/sub patterns
-* Enhanced mobile platform state management
+* Mosquitto MQTT broker within warp bubble (named OPTICAL-DATA-NETWORK)
+* Services implement MQTT clients for communication
+* Topics organized by service and function
+* Retained messages for status persistence
+* WebSocket support for browser clients
 
-=== MQTT Topic Structure
+=== Topic Structure
 
-* **`warpbubble/certificates/+/renewed`** - Certificate renewal notifications
-* **`warpbubble/services/+/status`** - Service health and status updates
-* **`warpbubble/platform/dock/status`** - Steam Deck docking state changes
-* **`warpbubble/network/connectivity`** - Network connectivity events
-* **`warpbubble/vr/session/+`** - VR session status and device events
-* **`warpbubble/containers/+/lifecycle`** - Container start/stop/restart events
-* **`warpbubble/config/changed`** - Configuration update notifications
-* **`warpbubble/proxy/status`** - Forward proxy connectivity status
-
-=== Use Case Examples
-
-* **Certificate Distribution**: Certbot publishes new certificates, services subscribe and update automatically
-* **Service Health Monitoring**: Each service publishes heartbeat and status, monitoring dashboard subscribes
-* **VR Session Management**: Quest 3 connectivity events trigger LCARS interface optimizations
-* **Platform State Changes**: Docking/undocking events trigger power management and display optimizations
-* **Network Transition Events**: WiFi/hotspot changes trigger proxy reconfiguration notifications
-* **Container Orchestration**: Service dependencies managed through lifecycle event subscriptions
-* **Configuration Hot Reload**: Centralized config changes distributed to all affected services
-* **Development Workflow**: Git push events, build status, deployment notifications
-
-=== Security Implementation
-
-* **TLS Encryption**: All MQTT communication encrypted with Let's Encrypt certificates
-* **Client Authentication**: Certificate-based client authentication for service access
-* **Topic Authorization**: ACL-based topic access control per service
-* **Retained Message Security**: Sensitive data (certificates) with appropriate TTL
-* **Network Isolation**: MQTT broker accessible only within warp bubble network
-
-=== Implementation Requirements
-
-* MQTT broker container (Eclipse Mosquitto) with TLS support
-* Client certificates for service authentication
-* Topic-based access control configuration
-* Message retention policies for critical data
-* Quality of Service configuration for reliable delivery
-* Integration with existing certificate generation workflow
-* Service client libraries for MQTT communication
-* Monitoring and logging for message bus health
+* `warp/status/<service>` - Service health status
+* `warp/config/<service>` - Configuration updates
+* `warp/events/<service>` - Service events
+* `warp/monitor/<metric>` - Monitoring data
 
 === Derived / Related Decisions
 
-* HTTPS certificates required (<<ARCID-001>>)
-* DNS infrastructure within warp bubble (<<ARCID-003>>)
-* Centralized environment configuration (<<ARCID-005>>)
-* Steam Deck mobile development platform (<<ARCID-009>>)
+* DNS infrastructure for broker resolution (<<ARCID-003>>)
+* Centralized configuration for MQTT settings (<<ARCID-005>>)
+* LCARS interface displays real-time status (<<ARCID-007>>)

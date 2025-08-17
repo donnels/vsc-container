@@ -1,5 +1,38 @@
 
 services:
+  # CoreDNS server for complete bidirectional DNS resolution
+  locator-matrix:
+    build:
+      context: ./docker-locator-matrix
+      dockerfile: Dockerfile
+    environment:
+      - WARP_DOMAIN=${WARP_DOMAIN}
+      - BASE_DOMAIN=${BASE_DOMAIN}
+      - WARPBUBBLE_SERVICES=${WARPBUBBLE_SERVICES}
+      # Pass all IP variables for hosts file generation
+      - WARPBUBBLE_IP_LOCATOR_MATRIX=${WARPBUBBLE_IP_LOCATOR_MATRIX}
+      - WARPBUBBLE_IP_DIAGNOSTIC_ARRAY=${WARPBUBBLE_IP_DIAGNOSTIC_ARRAY}
+      - WARPBUBBLE_IP_ENGINEERING_CONSOLE=${WARPBUBBLE_IP_ENGINEERING_CONSOLE}
+      - WARPBUBBLE_IP_DEFLECTOR=${WARPBUBBLE_IP_DEFLECTOR}
+      - WARPBUBBLE_IP_SHUTTLEBAY=${WARPBUBBLE_IP_SHUTTLEBAY}
+      - WARPBUBBLE_IP_TRANSPORTER=${WARPBUBBLE_IP_TRANSPORTER}
+      - WARPBUBBLE_IP_TRANSPORTER_TEST=${WARPBUBBLE_IP_TRANSPORTER_TEST}
+      - WARPBUBBLE_IP_CONSOLE=${WARPBUBBLE_IP_CONSOLE}
+      - WARPBUBBLE_IP_OPTICAL_DATA_NETWORK=${WARPBUBBLE_IP_OPTICAL_DATA_NETWORK}
+    ports:
+      - "${WARPBUBBLE_PORT_LOCATOR_MATRIX:-53}:53/udp"  # DNS
+      - "${WARPBUBBLE_PORT_LOCATOR_MATRIX_TCP:-53}:53/tcp"  # DNS over TCP
+      - "9153:9153"  # CoreDNS metrics
+    volumes:
+      - locator-matrix-data:/data
+    restart: unless-stopped
+    networks:
+      warpbubble:
+        ipv4_address: ${WARPBUBBLE_IP_LOCATOR_MATRIX}
+        aliases:
+          - locator-matrix.${WARP_DOMAIN}
+          - dns.${WARP_DOMAIN}
+
   # DNS Diagnostic Array - Star Trek themed testing container
   diagnostic-array:
     build:
@@ -8,11 +41,12 @@ services:
     profiles:
       - tools
       - diagnostics
+    dns:
+      - ${WARPBUBBLE_IP_LOCATOR_MATRIX}
     networks:
       warpbubble:
         aliases:
-          - diagnostic-array.warp.vsagcrd.org
-          - sensors.warp.vsagcrd.org
+          - diagnostic-array.${WARP_DOMAIN}
     command: ["sleep", "infinity"]  # Keep container running for manual testing
 
   engineering-console:
@@ -20,7 +54,7 @@ services:
       context: ./docker-engineering-console
       dockerfile: Dockerfile
     environment:
-      - CERT_HOSTNAMES=${CERT_HOSTNAMES:-code-dev.vsagcrd.org localhost 127.0.0.1}
+      - CERT_HOSTNAMES=${CERT_HOSTNAMES:-code-dev.${BASE_DOMAIN:-vsagcrd.org} localhost 127.0.0.1}
       - VSCODE_CERT_NAME=${VSCODE_CERT_NAME:-vscode}
       - PASSWORD=${PASSWORD:-vscode}
       - CODE_SERVER_PASSWORD_HASH=${CODE_SERVER_PASSWORD_HASH}
@@ -36,15 +70,14 @@ services:
       - cert-output:/etc/letsencrypt:ro
     command: ["/usr/bin/code-server", "/home/coder/code", "--bind-addr", "0.0.0.0:8443", "--auth", "password", "--cert", "/etc/letsencrypt/live/${VSCODE_CERT_NAME:-vscode}/fullchain.pem", "--cert-key", "/etc/letsencrypt/live/${VSCODE_CERT_NAME:-vscode}/privkey.pem"]
     restart: unless-stopped
+    dns:
+      - ${WARPBUBBLE_IP_LOCATOR_MATRIX}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_ENGINEERING_CONSOLE}
         aliases:
-          - engineering-console.warp.vsagcrd.org
-          - vsc-lcars.vsagcrd.org
-          - vscode-lcars.vsagcrd.org
-          - code-dev-lcars.vsagcrd.org
-          - ide-lcars.vsagcrd.org
+          - engineering-console.${WARP_DOMAIN}
+          - vscode.${WARP_DOMAIN}
 
   deflector:
     build:
@@ -67,12 +100,13 @@ services:
       - cert-output:/etc/letsencrypt
     profiles:
       - tools
+    dns:
+      - ${WARPBUBBLE_IP_LOCATOR_MATRIX}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_DEFLECTOR}
         aliases:
-          - deflector.warp.vsagcrd.org
-          - deflector-lcars.vsagcrd.org
+          - deflector.${WARP_DOMAIN}
 
   # Nginx web server - serves landing page and HTTPS menu
   shuttlebay:
@@ -84,11 +118,13 @@ services:
     volumes:
       - cert-output:/etc/letsencrypt:ro
     restart: unless-stopped
+    dns:
+      - ${WARPBUBBLE_IP_LOCATOR_MATRIX}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_SHUTTLEBAY}
         aliases:
-          - shuttlebay.warp.vsagcrd.org
+          - shuttlebay.${WARP_DOMAIN}
 
   # Squid 6 forward proxy for HTTPS tunneling
   transporter:
@@ -104,13 +140,13 @@ services:
       - shuttlebay
       - engineering-console
     restart: unless-stopped
+    dns:
+      - ${WARPBUBBLE_IP_LOCATOR_MATRIX}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_TRANSPORTER}
         aliases:
-          - transporter.warp.vsagcrd.org
-          - proxy-lcars.vsagcrd.org
-          - forward-proxy-lcars.vsagcrd.org
+          - transporter.${WARP_DOMAIN}
 
   # TEST: Ubuntu default entrypoint with hybrid config
   transporter-test:
@@ -123,12 +159,13 @@ services:
       - transporter-test-cache:/var/spool/squid
       - transporter-test-logs:/var/log/squid
     restart: unless-stopped
+    dns:
+      - ${WARPBUBBLE_IP_LOCATOR_MATRIX}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_TRANSPORTER_TEST}
         aliases:
-          - transporter-test.warp.vsagcrd.org
-          - proxy-test-lcars.vsagcrd.org
+          - transporter-test.${WARP_DOMAIN}
 
   # LCARS Console - Pure nginx web server with Star Trek themed interface
   console:
@@ -142,12 +179,13 @@ services:
     volumes:
       - cert-output:/etc/letsencrypt:ro
     restart: unless-stopped
+    dns:
+      - ${WARPBUBBLE_IP_LOCATOR_MATRIX}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_CONSOLE}
         aliases:
           - console.${WARP_DOMAIN}
-          - console-lcars.${WARP_DOMAIN}
 
   # MQTT Message Bus - Optical Data Network for secure system communication
   optical-data-network:
@@ -162,14 +200,17 @@ services:
       - optical-data-network-logs:/mosquitto/log
       - cert-output:/etc/letsencrypt:ro
     restart: unless-stopped
+    dns:
+      - ${WARPBUBBLE_IP_LOCATOR_MATRIX}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_OPTICAL_DATA_NETWORK}
         aliases:
-          - optical-data-network.warp.vsagcrd.org
-          - odn.warp.vsagcrd.org
+          - optical-data-network.${WARP_DOMAIN}
+          - odn.${WARP_DOMAIN}
 
 volumes:
+  locator-matrix-data:
   engineering-console-config:
   engineering-console-data:
   engineering-console-code:

@@ -9,11 +9,11 @@ This decision is part of the {arc-topic} architecture.
 
 == Context
 
-VS Code Server requires HTTPS connections to enable modern web features including WebSocket connections, service workers, and secure browser APIs. The development environment needs to provide a professional-grade secure access experience.
+VS Code Server requires HTTPS for WebSocket connections, service workers, secure browser APIs. Self-signed certificates create browser warnings and poor UX in mobile environments.
 
 == Problem Statement / Motivation
 
-VS Code Server cannot operate with full functionality over HTTP connections due to browser security restrictions. Self-signed certificates create user experience issues with browser warnings and certificate acceptance workflows that are particularly problematic in mobile/changing network environments.
+VS Code Server cannot operate with full functionality over HTTP. Browser security restrictions block modern web features. Self-signed certificates require manual acceptance on each device - problematic for changing network environments.
 
 == Alternatives Considered
 
@@ -21,50 +21,49 @@ VS Code Server cannot operate with full functionality over HTTP connections due 
 
 .Pro
 * No external dependencies
-* Quick to generate
+* Quick generation
 * Full local control
 
 .Con
 * Browser security warnings
-* Manual certificate acceptance required
-* Poor user experience
-* Certificate management complexity in mobile environments
+* Manual acceptance required
+* Poor UX in mobile environments
 * No trust chain validation
 
 === Let's Encrypt with DNS Challenge
 
 .Pro
-* Trusted certificate authority
+* Trusted CA
 * No browser warnings
 * Automated renewal
-* Works with private networks via DNS challenge
-* Professional user experience
+* Works with private networks
+* Professional UX
 
 .Con
 * Requires domain ownership
 * DNS API access needed
-* External dependency on Let's Encrypt
+* External dependency
 
 == Decision Outcome
 
-We will use Let's Encrypt certificates with Cloudflare DNS challenge for all HTTPS services, particularly VS Code Server.
+Use Let's Encrypt certificates with Cloudflare DNS challenge for all HTTPS services.
 
 === Justification
 
-The requirement for professional-grade secure access to VS Code Server necessitates trusted certificates. The DNS challenge method allows us to obtain valid certificates even for internal services, eliminating user experience issues while maintaining security.
+Professional secure access requires trusted certificates. DNS challenge enables valid certificates for internal services, eliminating UX issues while maintaining security.
 
 === Consequences
 
 * Cloudflare API access required
-* Domain ownership and DNS control necessary
-* Forward tunneling proxy needed to expose internal services securely
-* Automated certificate renewal reduces maintenance overhead
-* Enhanced security posture for all services
+* Domain ownership necessary
+* Forward proxy needed for external access
+* Automated renewal reduces maintenance
+* Enhanced security posture
 
 === Derived / Related Decisions
 
-* Forward tunneling proxy implementation (<<ARCID-002>>)
-* DNS infrastructure within warp bubble (<<ARCID-003>>)
-* Cloudflare DNS provider selection (<<ARCID-006>>)
-* Test container for multi-device compatibility (<<ARCID-008>>)
-* MQTT message bus for optical data network (<<ARCID-010>>)
+* Forward tunneling proxy (<<ARCID-002>>)
+* DNS infrastructure (<<ARCID-003>>)
+* Cloudflare DNS provider (<<ARCID-006>>)
+* Test container compatibility (<<ARCID-008>>)
+* MQTT optical data network (<<ARCID-010>>)

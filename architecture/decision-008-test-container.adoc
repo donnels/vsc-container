@@ -9,18 +9,18 @@ This decision is part of the {arc-topic} architecture.
 
 == Context
 
-The warp bubble environment is designed to support multiple device types including VR headsets, Apple devices (iOS/macOS), Linux systems, Android tablets, and potentially mobile phones. Each device type has different capabilities regarding HTTPS support, network configuration, browser features, and proxy compatibility. Testing is required to ensure consistent functionality across the diverse device ecosystem.
+Warp bubble supports multiple device types: VR headsets, Apple devices, Linux systems, Android tablets, phones. Each has different HTTPS support, network configuration, browser features, proxy compatibility.
 
 == Problem Statement / Motivation
 
-Different devices and platforms have varying support for:
+Devices vary in:
 - HTTPS certificate handling and trust chains
 - Proxy configuration methods (PAC files, manual settings)
 - Network discovery and connectivity features
 - Browser capabilities and security restrictions
-- VR-specific interface rendering and interaction
+- VR-specific interface rendering
 
-Without systematic testing across device types, users may encounter compatibility issues, broken functionality, or poor user experience on their specific devices.
+Without systematic testing, users encounter compatibility issues and poor UX.
 
 == Alternatives Considered
 
@@ -29,14 +29,14 @@ Without systematic testing across device types, users may encounter compatibilit
 .Pro
 * Real-world testing conditions
 * Authentic user experience validation
-* No additional infrastructure needed
+* No additional infrastructure
 
 .Con
 * Time-consuming and repetitive
 * Inconsistent test environments
 * Difficult to reproduce issues
 * No automated regression testing
-* Limited scalability for multiple configurations
+* Limited scalability
 
 === Dedicated Test Container Environment
 
@@ -45,27 +45,26 @@ Without systematic testing across device types, users may encounter compatibilit
 * Consistent test conditions
 * Automated capability detection via web interface
 * Easy to reproduce and debug issues
-* Can provide both HTTP and HTTPS test endpoints
+* HTTP and HTTPS test endpoints
 * Real-time device capability reporting
 * Accessible from inside and outside warp bubble
 
 .Con
 * Additional container infrastructure required
-* May not perfectly replicate all device-specific behaviors
-* Requires test script development and maintenance
+* May not perfectly replicate device-specific behaviors
+* Requires test script development
 
 == Decision Outcome
 
-We will implement a dedicated test container within the warp bubble environment that provides web-based capability detection pages accessible via both HTTP and HTTPS from devices inside and outside the warp bubble network.
+Implement dedicated test container within warp bubble providing web-based capability detection pages accessible via HTTP and HTTPS from inside and outside warp bubble network.
 
 === Justification
 
-A test container with web-based capability detection provides automated device analysis without requiring manual testing procedures. By offering both HTTP and HTTPS test endpoints accessible from inside and outside the warp bubble, devices can automatically report their capabilities, limitations, and compatibility status. This approach enables real-time validation of certificate handling, proxy support, and browser features across the diverse device ecosystem.
+Test container with web-based capability detection provides automated device analysis without manual testing procedures. HTTP and HTTPS test endpoints accessible from inside and outside warp bubble enable devices to automatically report capabilities, limitations, and compatibility status.
 
 === Consequences
 
-* Test container serving web-based capability detection pages
-** Named VALIDATRIX
+* Test container serving web-based capability detection pages (Named VALIDATRIX)
 * HTTP and HTTPS endpoints for comprehensive protocol testing
 * Automated device capability reporting and analysis
 * Real-time browser feature detection (WebSocket, service workers, etc.)
@@ -89,13 +88,13 @@ A test container with web-based capability detection provides automated device a
 * Proxy auto-configuration (PAC) file functionality
 * Manual proxy configuration procedures
 * Network discovery and connectivity testing
-* LCARS interface rendering across different screen sizes
+* LCARS interface rendering across screen sizes
 * Browser security feature compatibility
 * WebSocket and service worker functionality
 
 === Implementation Requirements
 
-* Web server providing capability detection pages on both HTTP and HTTPS
+* Web server providing capability detection on HTTP and HTTPS
 * JavaScript-based browser feature detection and reporting
 * Device capability analysis and results display interface
 * Certificate validation testing via HTTPS endpoints

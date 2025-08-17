@@ -9,61 +9,68 @@ This decision is part of the {arc-topic} architecture.
 
 == Context
 
-The warp bubble environment operates in mobile conditions where external IP addresses and WiFi networks change frequently. Users need a simple way to configure proxy settings to access internal services regardless of the current network configuration.
+Warp bubble services need proxy auto-configuration for external access. External clients require discovery endpoint for PAC files and service menu without prior network knowledge.
 
 == Problem Statement / Motivation
 
-External network changes (WiFi networks, mobile hotspots, hotel networks) result in different IP addresses for the Steam Deck hosting the warp bubble. Users need an easy way to discover and configure proxy settings without manual IP address updates each time the network changes.
+Mobile clients need PAC file access to configure forward proxy for warp bubble services. External users need landing zone to discover available services without complex configuration.
 
 == Alternatives Considered
 
-=== Manual Proxy Configuration
+=== PAC File Hosting Only
 
 .Pro
+* Minimal resource usage
 * Simple implementation
-* No additional services needed
-* Direct configuration control
+* Direct service integration
 
 .Con
-* Requires manual IP updates on network changes
-* Poor user experience in mobile environments
-* Error-prone configuration process
-* Documentation maintenance overhead
+* Poor user experience
+* No service discovery
+* Manual URL entry required
 
-=== Landing Zone Server with PAC File
+=== Full Dashboard Server
 
 .Pro
-* Automatic proxy discovery
-* Network-change resilient
-* User-friendly configuration
-* Supports multiple proxy endpoints
-* Centralized configuration management
+* Rich user interface
+* Service management capabilities
+* Professional appearance
 
 .Con
-* Additional web server required
-* PAC file generation complexity
-* Initial setup learning curve
+* Resource overhead for simple use case
+* Complex implementation
+* Authentication complexity
+
+=== Landing Zone with Service Menu
+
+.Pro
+* Simple user interface
+* PAC file hosting
+* Service discovery
+* Minimal resource overhead
+
+.Con
+* Basic functionality only
+* Limited management capabilities
 
 == Decision Outcome
 
-We will implement a dedicated landing zone server (nginx-based) that provides proxy configuration details, PAC files, and easy access instructions for the current network configuration.
+Implement landing zone server that hosts PAC files and provides service menu for external clients.
 
 === Justification
 
-The mobile nature of the Steam Deck environment requires a solution that adapts to changing network conditions. A landing zone server provides users with current proxy settings and PAC files, eliminating the need for manual configuration updates when networks change.
+Provides necessary PAC file hosting with minimal overhead. Service menu improves user experience by providing service discovery without complex configuration.
 
 === Consequences
 
-* Nginx-based landing zone server required
-* PAC file generation and serving capability
-* Dynamic proxy configuration based on current network
-* Enhanced user experience for mobile usage
-* Reduced support overhead for proxy configuration
-* Web-based interface for current connection details
+* Nginx-based static file server
+* PAC file served via HTTP/HTTPS
+* Service menu provides discovery
+* Simple HTML interface sufficient
+* Minimal maintenance required
 
 === Derived / Related Decisions
 
-* Forward tunneling proxy implementation (<<ARCID-002>>)
-* DNS infrastructure within warp bubble (<<ARCID-003>>)
-* HTTPS certificates for secure access (<<ARCID-001>>)
-* LCARS interface design for VR environment (<<ARCID-007>>)
+* Forward proxy implementation required (<<ARCID-002>>)
+* HTTPS certificates for security (<<ARCID-001>>)
+* DNS for service resolution (<<ARCID-003>>)

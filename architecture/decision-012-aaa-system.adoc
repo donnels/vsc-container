@@ -1,0 +1,152 @@
+:arc-id: ARCID-012
+:arc-topic: Security Infrastructure
+:arc-title: Authentication, Authorization, Accounting, and Auditing (AAA) System
+
+= {arc-id} - {arc-topic} - {arc-title}
+
+== Context
+
+Current system uses basic password authentication for VS Code access. No formal user management, role-based access control, session tracking, or audit logging.
+
+Neo4j (Phase 2) will also use password-based authentication initially. Secrets storage across environment variables creates security risk.
+
+== Problem Statement / Motivation
+
+Development environment acceptable for single-user scenarios. Production or multi-user deployment requires:
+
+* **Authentication**: Verify user identities
+* **Authorization**: Control resource access based on roles
+* **Accounting**: Track user sessions and resource usage  
+* **Auditing**: Log security events for compliance
+* **Secrets Management**: Secure storage and distribution of passwords, keys, certificates
+
+== Alternatives Considered
+
+=== Basic HTTP Authentication (Current)
+Simple password protection via proxy or web server.
+
+**Pros**: Simple, no dependencies, works with existing infrastructure
+**Cons**: No user management, shared credentials, no audit trail, no session control
+
+**Test Evidence**: Currently implemented, functional for development
+
+=== OAuth2/OIDC Integration
+External identity provider (Google, GitHub, Azure AD) via OAuth2/OpenID Connect.
+
+**Pros**: Enterprise-grade identity management, SSO capability, well-established protocols
+**Cons**: External dependencies, complex configuration, requires internet connectivity
+
+**Implementation**: Oauth2-proxy or similar reverse proxy with OIDC backend
+
+=== LDAP/Active Directory Integration  
+Traditional enterprise directory service integration.
+
+**Pros**: Enterprise standard, centralized user management, role-based groups
+**Cons**: Complex setup, requires directory infrastructure, heavy for container environment
+
+**Implementation**: OpenLDAP container with phpLDAPadmin interface
+
+=== Container-Native Identity (Future Choice)
+Purpose-built identity service for containerized environments.
+
+**Pros**: Lightweight, container-optimized, full AAA feature set, audit compliance
+**Cons**: Additional service complexity, custom implementation required
+
+**Implementation**: Keycloak container with PostgreSQL backend, integrated audit logging
+
+=== Secrets Management Integration
+Centralized secrets storage for passwords, API keys, certificates.
+
+**Pros**: Eliminates plaintext secrets in environment variables, audit trail, secret rotation
+**Cons**: Additional infrastructure complexity, secret bootstrap problem
+
+**Options**:
+* **Environment Files with Restricted Permissions**: `.env` files with 600 permissions, bind mounts
+* **Docker Secrets**: Podman secrets via tmpfs, encrypted at rest, limited to single host
+* **Init Containers**: Fetch secrets on startup, store in ephemeral volumes
+* **SOPS (Secrets OPerationS)**: Git-stored encrypted files, age/GPG encryption, Mozilla open source
+* **HashiCorp Vault**: Enterprise-grade, resource heavy, complex for single-node deployment
+* **External Key Management**: Cloud HSM/KMS, external dependencies, cost implications
+
+=== SOPS Implementation Details
+Mozilla's SOPS encrypts structured data files using age, GPG, or cloud KMS keys.
+
+**Documentation**: https://github.com/mozilla/sops
+
+**Workflow**:
+1. Create `.sops.yaml` configuration with key references
+2. Encrypt secrets files: `sops -e secrets.env > secrets.env.enc`
+3. Store encrypted files in git repository
+4. Decrypt at runtime: `sops -d secrets.env.enc > /tmp/secrets.env`
+5. Source decrypted file in container startup
+
+**Example Configuration**:
+.SOPS Configuration
+[source,yaml]
+----
+# .sops.yaml
+creation_rules:
+  - path_regex: \.env$
+    age: age1234567890abcdef...
+----
+
+**Integration**: Init container with sops binary, age key from host filesystem, decrypt to shared volume.
+
+**Benefits**: No server infrastructure, git-native, audit trail via commits, key rotation support
+**Limitations**: Age key management, decryption performance, bootstrap complexity
+
+== Decision Outcome
+
+**Deferred Implementation**: Maintain current basic authentication for development phase.
+
+**Future Production Requirements**: Container-native identity system required before multi-user or production deployment.
+
+**Secrets Management Approach**: SOPS with age encryption for Phase 2 Neo4j deployment, evaluate Podman secrets as lightweight alternative.
+
+=== Justification
+
+Current basic authentication sufficient for:
+* Single-user development environment
+* Time-boxed experimentation phase
+* Steam Deck mobility constraints
+
+AAA system required for:
+* Multi-user collaboration environments
+* Production deployment scenarios
+* Compliance and audit requirements
+* VR collaboration spaces (Phase 3)
+* Neo4j multi-user data access (Phase 2)
+* Secrets management beyond environment variables
+
+=== Consequences
+
+**Positive**:
+* Development velocity maintained
+* No additional complexity during validation
+* Clear requirement definition for future
+
+**Negative**:
+* Security risk for any multi-user scenarios
+* No audit trail for current development activities
+* Migration complexity when AAA implementation required
+* Secrets stored in plaintext environment variables
+* Neo4j passwords exposed in configuration files
+
+**Neutral**:
+* Architecture prepared for AAA integration via proxy patterns
+* Current certificate infrastructure compatible with AAA systems
+
+=== Implementation Timeline
+
+* **Phase 1** (Current): Basic password authentication maintained
+* **Phase 2** (Week 2-3): Neo4j password-based auth, AAA requirement assessment, secrets management evaluation
+* **Phase 3** (Week 3-4): AAA implementation required for VR collaboration, secrets management implementation
+* **Phase 4** (Week 4+): Full AAA system mandatory for production deployment
+
+=== Derived / Related Decisions
+
+This decision impacts:
+* **ARCID-002**: Forward Proxy - Proxy authentication integration point
+* **ARCID-007**: LCARS Interface - User session management requirements  
+* **ARCID-010**: MQTT Network - Secure publish/subscribe access control
+* **Future VR Architecture**: Multi-user collaboration security model

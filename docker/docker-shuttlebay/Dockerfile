@@ -1,7 +1,9 @@
-FROM docker.io/nginx:alpine
+FROM docker.io/nginx:latest
 
 # Install openssl for certificate generation
-RUN apk add --no-cache openssl
+RUN apt-get update && apt-get install -y \
+    openssl \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create directories
 RUN mkdir -p /etc/nginx/certs /var/www/html

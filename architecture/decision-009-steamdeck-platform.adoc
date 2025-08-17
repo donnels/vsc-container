@@ -9,17 +9,18 @@ This decision is part of the {arc-topic} architecture.
 
 == Context
 
-The warp bubble development environment needs to be truly mobile, supporting untethered development in various locations while maintaining the capability to function as a desktop workstation when docked. The solution must provide sufficient computing power for containerized development, AI workloads (small LLaMA models), and VR development while remaining portable and cost-effective.
+Mobile development platform needed. Must support untethered development, desktop docking, container workloads, AI inference, and VR development.
 
 == Problem Statement / Motivation
 
-Traditional development setups are either:
-- Desktop workstations: Powerful but completely stationary
-- Laptops: Portable but limited battery life and processing power
-- Cloud development: Requires constant internet connectivity
-- Mobile devices: Insufficient power for serious development work
+Traditional setups fail:
+- Desktops: Powerful, not portable
+- Laptops: Limited battery, processing power  
+- Cloud: Requires internet
+- Mobile: Insufficient power
+- SBC: Weak + airport security issues
 
-A mobile development platform is needed that combines portability, sufficient computing power, battery life, and the ability to run containerized workloads with VR capabilities.
+Need mobile platform with portability, power, battery life, containers, VR support.
 
 == Alternatives Considered
 
@@ -74,47 +75,47 @@ A mobile development platform is needed that combines portability, sufficient co
 
 == Decision Outcome
 
-We will use Steam Deck as the primary mobile development platform, running Podman for container orchestration, paired with Bluetooth keyboard and Quest 3 VR headset for a complete untethered development environment.
+Steam Deck primary mobile platform. Podman orchestration. Bluetooth keyboard + Quest 3 VR for untethered development.
 
 === Justification
 
-Steam Deck provides the optimal balance of cost, performance, portability, and capability for mobile development. The combination of handheld portability, desktop docking capability, strong battery life, and full Linux container support makes it ideal for warp bubble development. The gaming heritage ensures VR compatibility, while the price point makes it accessible for experimental development setups.
+Optimal balance: cost, performance, portability, capability. Handheld + desktop docking + battery life + Linux containers. Gaming heritage ensures VR compatibility. Accessible price.
 
 === Consequences
 
-* Steam Deck hardware platform with SteamOS/Desktop Linux
-* Podman container orchestration instead of Docker
-* Bluetooth keyboard integration for development work
-* Quest 3 VR headset compatibility for immersive development
-* Phone hotspot connectivity for untethered internet access
-* Docking station setup for desktop workstation conversion
-* SD card storage expansion for development projects
-* Power management optimization for mobile development sessions
+* Steam Deck with SteamOS/Desktop Linux
+* Podman instead of Docker
+* Bluetooth keyboard integration
+* Quest 3 VR compatibility
+* Phone hotspot connectivity
+* Docking station for desktop mode
+* SD card storage expansion
+* Power optimization for mobile sessions
 
 === Mobile Development Setup
 
-* **Untethered Configuration**: Steam Deck + Bluetooth keyboard + Quest 3 + phone hotspot
-* **Tethered Configuration**: Steam Deck + docking station + external monitor + full desktop setup
-* **Power Management**: Optimized container resource limits for battery efficiency
-* **Storage Strategy**: SD card expansion for project storage and container images
-* **Network Connectivity**: Phone hotspot primary, WiFi secondary, ethernet when docked
+* **Untethered**: Steam Deck + Bluetooth keyboard + Quest 3 + phone hotspot
+* **Tethered**: Steam Deck + docking station + external monitor + desktop setup
+* **Power**: Optimized container limits for battery efficiency
+* **Storage**: SD card expansion for projects and images
+* **Network**: Phone hotspot primary, WiFi secondary, ethernet when docked
 
 === Technical Capabilities
 
-* **Container Support**: Full Podman/Docker compatibility on desktop Linux
-* **AI Workloads**: Sufficient CPU/GPU for small LLaMA model inference
-* **VR Development**: Native Quest 3 compatibility for immersive coding
-* **Battery Life**: 4-8 hours mobile development depending on workload
-* **Performance**: Adequate for VS Code Server, web development, and container orchestration
-* **Expandability**: USB-C docking for full desktop capabilities
+* **Containers**: Full Podman/Docker compatibility
+* **AI**: Sufficient CPU/GPU for small LLaMA inference
+* **VR**: Native Quest 3 compatibility
+* **Battery**: 4-8 hours depending on workload
+* **Performance**: Adequate for VS Code, web development, containers
+* **Expandability**: USB-C docking for desktop capabilities
 
 === Cost Analysis
 
-* **Steam Deck**: $400-650 (depending on model)
-* **Bluetooth Keyboard**: $50-150
-* **Quest 3 VR Headset**: $500-650
-* **Total Setup**: $950-1450 (vs $2000-4000 for equivalent laptop + VR)
-* **Exceptional value**: Desktop + mobile + gaming + VR in one affordable package
+* Steam Deck: $400-650
+* Bluetooth Keyboard: $50-150
+* Quest 3 VR: $500-650
+* Total: $950-1450 (vs $2000-4000 laptop + VR)
+* Exceptional value: Desktop + mobile + gaming + VR in one package
 
 === Derived / Related Decisions
 

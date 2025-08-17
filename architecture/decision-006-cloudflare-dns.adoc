@@ -9,11 +9,11 @@ This decision is part of the {arc-topic} architecture.
 
 == Context
 
-The warp bubble environment requires automated SSL certificate generation for internal services using Let's Encrypt. Since services operate on private networks (172.20.0.0/16), HTTP-01 challenge is not feasible, requiring DNS-01 challenge for certificate validation. A reliable DNS provider with API access is essential for automated certificate management.
+Warp bubble requires automated SSL certificate generation for internal services using Let's Encrypt. Services operate on private networks (172.20.0.0/16), making HTTP-01 challenge infeasible. DNS-01 challenge requires DNS provider with API access.
 
 == Problem Statement / Motivation
 
-Let's Encrypt DNS-01 challenge requires programmatic control over DNS records to prove domain ownership. The mobile nature of the warp bubble environment makes traditional HTTP-01 validation impossible. A cost-effective, reliable DNS provider with robust API support is needed for automated certificate lifecycle management.
+Let's Encrypt DNS-01 challenge requires programmatic DNS record control to prove domain ownership. Mobile warp bubble environment makes HTTP-01 validation impossible. Need cost-effective, reliable DNS provider with robust API for automated certificate lifecycle management.
 
 == Alternatives Considered
 
@@ -22,68 +22,68 @@ Let's Encrypt DNS-01 challenge requires programmatic control over DNS records to
 .Pro
 * Excellent API documentation
 * High reliability and performance
-* Comprehensive DNS management features
-* Strong integration with AWS ecosystem
+* Comprehensive DNS features
+* AWS ecosystem integration
 
 .Con
-* Higher cost structure
-* Requires AWS account and billing setup
-* More complex pricing model
-* Overkill for simple DNS needs
+* Higher cost
+* Requires AWS account setup
+* Complex pricing
+* Overkill for simple DNS
 
 === Cloudflare DNS
 
 .Pro
-* Free tier available for basic DNS
-* Excellent API with comprehensive documentation
-* Native Let's Encrypt integration and support
+* Free tier for basic DNS
+* Excellent API with documentation
+* Native Let's Encrypt integration
 * Low cost for additional features
-* High performance global DNS network
+* High performance global network
 * Simple API token authentication
 * Wide certbot plugin support
 
 .Con
 * Requires domain transfer to Cloudflare nameservers
-* Free tier has some feature limitations
-* Dependency on single provider
+* Free tier limitations
+* Single provider dependency
 
 === Self-Hosted DNS (BIND/PowerDNS)
 
 .Pro
-* Complete control over DNS infrastructure
+* Complete infrastructure control
 * No external dependencies
 * No recurring costs
 
 .Con
 * Significant maintenance overhead
 * Requires DNS expertise
-* Complex API development needed
+* Complex API development
 * No Let's Encrypt integration
 * Single point of failure
 * Security management complexity
 
 == Decision Outcome
 
-We will use Cloudflare as the DNS provider for vsagcrd.org domain management, leveraging their API for automated Let's Encrypt certificate generation via DNS-01 challenge.
+Use Cloudflare as DNS provider for vsagcrd.org domain management, leveraging API for automated Let's Encrypt certificate generation via DNS-01 challenge.
 
 === Justification
 
-Cloudflare provides the optimal balance of cost-effectiveness, reliability, and API functionality needed for automated certificate management. Their native Let's Encrypt compatibility and comprehensive certbot plugin support make certificate automation straightforward. The free tier covers basic DNS needs while maintaining high performance and reliability.
+Cloudflare provides optimal balance of cost-effectiveness, reliability, and API functionality for automated certificate management. Native Let's Encrypt compatibility and comprehensive certbot plugin support make certificate automation straightforward.
 
 === Consequences
 
-* Cloudflare API token required for certificate automation
+* Cloudflare API token required for automation
 * Dependency on Cloudflare service availability
 * Simplified certificate management automation
 * Low operational cost for DNS services
 * Access to additional Cloudflare features (CDN, security)
 ** not required for this project
-** potential for cloudflared tunnel integration in the future
+** potential for cloudflared tunnel integration
 
 === Implementation Requirements
 
 * Cloudflare account setup and domain transfer
-* API token generation with Zone:Read and DNS:Edit permissions
+* API token with Zone:Read and DNS:Edit permissions
 * Certbot cloudflare plugin configuration
 * DNS record management through Cloudflare dashboard or API
 * Backup DNS configuration documentation

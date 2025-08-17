@@ -1,3 +1,19 @@
+# Handle internal warp bubble domains with hosts file
+${WARP_DOMAIN} {
+    hosts /etc/coredns/hosts {
+        fallthrough
+    }
+    
+    # Enable error logging
+    errors
+    
+    # Enable health check endpoint
+    health {
+        lameduck 5s
+    }
+}
+
+# Handle all other domains (external DNS)
 . {
     # Auto-detect local DNS from system configuration
     # This will use Fritz Box (10.251.2.1) when home, mobile DNS when traveling
@@ -17,6 +33,3 @@
     # Enable metrics
     prometheus :9153
 }
-
-# NOTE: Internal vsagcrd.org domains are now handled by Docker Compose aliases
-# This CoreDNS instance only handles external DNS forwarding and caching

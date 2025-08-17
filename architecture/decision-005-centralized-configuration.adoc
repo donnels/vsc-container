@@ -9,88 +9,68 @@ This decision is part of the {arc-topic} architecture.
 
 == Context
 
-The warp bubble project initially used distributed environment configuration files across individual service directories (docker-vsc/.env, docker-console/.env, docker-certbot/.env). This approach led to configuration fragmentation, potential conflicts, and maintenance overhead as the project grew.
+Warp bubble requires centralized configuration management for DNS resolution, certificates, and service discovery. Services need consistent access to environment variables and configuration data.
 
 == Problem Statement / Motivation
 
-Distributed environment files create several challenges:
-- Configuration duplication across services
-- Difficulty in maintaining consistent variable naming
-- Risk of conflicting environment values
-- Complex troubleshooting when configuration issues arise
-- Poor visibility into overall system configuration
+Environment variables scattered across multiple Docker Compose files create inconsistency. Configuration changes require modifications in multiple locations. Service discovery needs central configuration source.
 
 == Alternatives Considered
 
-=== Individual Service Environment Files
+=== Distributed Configuration Files
 
 .Pro
-* Service-specific configuration isolation
-* Each service owns its configuration
-* Simple initial setup per service
+* Simple per-service configuration
+* No external dependencies
+* Service isolation
 
 .Con
-* Configuration fragmentation and duplication
-* Inconsistent variable naming across services
-* Difficult to maintain and update
-* Poor visibility into system-wide configuration
-* Risk of conflicting values
+* Configuration drift
+* Inconsistent variable naming
+* Difficult centralized updates
 
-=== Centralized Environment Configuration
+=== External Configuration Server
 
 .Pro
-* Single source of truth for all configuration
-* Consistent variable naming (WARPBUBBLE_ prefix)
-* Better organization with sectioned configuration
-* Easier maintenance and updates
-* Clear visibility into all system settings
+* Professional configuration management
+* Versioning capabilities
+* Remote management
 
 .Con
-* Larger central configuration file
-* Requires coordination across service changes
-* Initial migration effort required
+* Additional infrastructure complexity
+* External dependencies
+* Overkill for development environment
+
+=== Centralized Environment File
+
+.Pro
+* Single source of truth
+* Consistent variable naming
+* Easy updates
+* Version control integration
+
+.Con
+* Single point of failure
+* All services share configuration visibility
 
 == Decision Outcome
 
-We will consolidate all environment variables into a single central `/docker/.env` file with organized sections and consistent WARPBUBBLE_ prefixed naming convention.
+Use centralized `.env` file with consistent variable naming for all warp bubble services.
 
 === Justification
 
-Centralized configuration management provides better maintainability, consistency, and visibility while reducing the risk of configuration conflicts. The WARPBUBBLE_ prefix creates sortable, organized variable names that clearly identify project-specific configuration.
+Simplest approach for development environment. Provides configuration consistency without external dependencies. Enables easy updates and version control.
 
 === Consequences
 
-* All environment variables moved to `/docker/.env`
-* Individual service `.env` files backed up as `.env.backup`
-* Template files (`.env.template`) removed after consolidation
-* Docker Compose services receive variables via environment section
-* Consistent WARPBUBBLE_ naming convention implemented
-* Organized configuration sections for different concerns
-* Single point of configuration management
-
-=== Migration Actions Completed
-
-* **Merged** all variables from individual service `.env` files
-* **Backed up** original files as `.env.backup`
-* **Updated** docker-compose.yaml to use centralized environment variables
-* **Removed** individual `.env.template` files after consolidation
-* **Implemented** WARPBUBBLE_ prefix for sortable variable names
-
-=== Configuration Sections
-
-* WARPBUBBLE configuration - Network, domains, and IP addresses
-* Certificate & SSL configuration - Cloudflare API, Let's Encrypt domains
-* VS Code Server configuration - Authentication, virtual hosts, logging
-* LCARS Console configuration - Interface settings, certificates
-* Proxy configuration - Squid and legacy HAProxy settings
-* Service-specific settings - Certbot, extended configurations
+* Single `.env` file for all services
+* Consistent variable naming convention
+* Docker Compose env_file integration
+* Configuration version control
+* Simplified deployment
 
 === Derived / Related Decisions
 
-* HTTPS certificates required (<<ARCID-001>>)
-* Forward tunneling proxy implementation (<<ARCID-002>>)
-* DNS infrastructure within warp bubble (<<ARCID-003>>)
-* Landing zone server for proxy configuration (<<ARCID-004>>)
-* Cloudflare DNS provider selection (<<ARCID-006>>)
-* Steam Deck mobile development platform (<<ARCID-009>>)
-* MQTT message bus for optical data network (<<ARCID-010>>)
+* DNS infrastructure uses central configuration (<<ARCID-003>>)
+* HTTPS certificates reference shared variables (<<ARCID-001>>)
+* Service discovery relies on central naming (all services)

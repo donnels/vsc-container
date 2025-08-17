@@ -1,0 +1,301 @@
+= Architecture
+:toc: right
+:toclevels: 5
+:sectnumlevels: 5
+:sectnums:
+:toc-title: Table of Contents
+
+== Introduction
+
+**Ideas first. Test. Learn. Decide. Document.**
+
+This architecture emerges from experimentation, not planning. Decisions capture constraints discovered through testing, not assumptions. Documentation follows implementation to record what works.
+
+**Core Principle**: Build to learn, then formalize the learning.
+
+== Architecture Approach
+
+:leveloffset: +1
+
+include::devops-architecture-approach.adoc[]
+
+:leveloffset: 0
+
+== Overview
+Warp Bubble: Containerized development environment with secure external access. One virtual network, variable-driven configuration.
+
+image::images/architecture.png[Architecture Overview, 800, 600]
+
+== Requirements
+* Run on Steam Deck with podman-compose
+* Secure external access to internal services
+* Variable-driven configuration
+* Services in virtual network:
+
+[cols="1,2,2,3,2",options="header"]
+|===
+|Service |Container Name |Product |Function |Exposed
+
+|locator-matrix
+|LOCATOR-MATRIX
+|CoreDNS
+|Internal DNS resolution for *.warp.vsagcrd.org domains within the warpbubble network
+|Internal :53
+
+|transporter
+|TRANSPORTER
+|Squid
+|Forward proxy for HTTPS tunneling, enabling secure access to internal services
+|External :3128
+
+|engineering-console
+|ENGINEERING CONSOLE
+|VS Code Server
+|VS Code development environment with HTTPS access and certificate management
+|Internal :8443
+
+|deflector
+|DEFLECTOR
+|Certbot
+|Let's Encrypt certificate generation and management via Cloudflare DNS challenge
+|Internal
+
+|shuttlebay
+|SHUTTLEBAY
+|Nginx
+|Landing page and proxy configuration interface with PAC file support
+|External :8888
+
+|console
+|CONSOLE
+|Nginx
+|LCARS-themed central page to access VS Code server and other services
+|Internal :80
+
+|optical-data-network
+|OPTICAL DATA NETWORK
+|Eclipse Mosquitto
+|MQTT message bus for secure certificate distribution and system event communication
+|Internal :8883
+
+|transporter-test
+|TRANSPORTER (TEST)
+|Squid
+|Test instance of forward proxy with Ubuntu configuration
+|External :3129
+|===
+
+== Decisions
+Key decisions:
+
+:leveloffset: +2
+
+include::decision-001-https-certificates.adoc[]
+
+include::decision-002-forward-proxy.adoc[]
+
+include::decision-003-dns-infrastructure.adoc[]
+
+include::decision-004-landing-zone.adoc[]
+
+include::decision-005-centralized-configuration.adoc[]
+
+include::decision-006-cloudflare-dns.adoc[]
+
+include::decision-007-lcars-interface.adoc[]
+
+include::decision-008-test-container.adoc[]
+
+include::decision-009-steamdeck-platform.adoc[]
+
+include::decision-010-mqtt-optical-data-network.adoc[]
+
+include::decision-011-star-trek-naming.adoc[]
+
+include::decision-012-aaa-system.adoc[]
+
+:leveloffset: 0
+
+== Implementation Work Products
+
+=== DNS Infrastructure Implementation
+
+:leveloffset: +3
+
+include::work-product-dns-implementation.adoc[]
+
+:leveloffset: 0
+
+== Standards Catalog
+
+=== Container Standards
+* **Base Images**: Debian/Ubuntu LTS for consistency and security updates
+* **Networking**: Bridge networks with static IP assignments via environment variables  
+* **Configuration**: Centralized `.env` file with `WARPBUBBLE_` prefixed variables
+* **Naming**: Star Trek themed service names for memorability and organization
+* **DNS**: CoreDNS primary with bidirectional resolution for `*.warp.vsagcrd.org`
+
+=== Security Standards
+* **Certificates**: Let's Encrypt with Cloudflare DNS challenge for all HTTPS
+* **Proxy**: Forward tunneling via Squid for external access
+* **Network Isolation**: Private 172.20.0.0/16 subnet with controlled egress
+* **Authentication**: Password-based for development, no public exposure
+
+=== Development Standards
+* **Documentation**: Hemingway-style terseness, evidence over assumptions
+* **Architecture Decisions**: ADR format with alternatives, evidence, consequences
+* **Experimentation**: Time-boxed (2-4 hours), single constraint focus
+* **Version Control**: Architecture docs with code, AsciiDoc format
+
+=== Deployment Standards
+* **Orchestration**: Podman Compose for Steam Deck compatibility
+* **Platform**: SteamOS/Desktop Linux on Steam Deck hardware
+* **Storage**: SD card expansion, container volume persistence
+* **Monitoring**: MQTT pub/sub for real-time status, LCARS interface
+
+== Risk Register
+
+[cols="3,2,2,3"]
+|===
+|Risk |Probability |Impact |Mitigation
+
+|Steam Deck hardware failure
+|Low
+|High
+|github for repositorybackups, wait for new Steamdeck
+
+|DNS service failure (CoreDNS)
+|Low
+|Medium
+|Docker aliases provide fallback forward DNS, rapid container restart procedures
+
+|Certificate expiration
+|Low
+|High
+|Automated renewal via certbot, monitoring alerts, manual backup procedures
+
+|Network configuration changes
+|High
+|Low
+|Forward proxy design handles network mobility, configuration independence
+
+|Container resource exhaustion
+|Medium
+|Medium
+|Resource limits in compose, monitoring via MQTT, manual scaling procedures
+
+|External dependency failure (Cloudflare)
+|Low
+|Medium
+|Local DNS fallback, cached certificates, alternative DNS providers documented
+
+|Configuration drift
+|Medium
+|Low
+|Centralized environment variables, version control, deployment scripts
+
+|VR headset compatibility
+|Medium
+|Low
+|Progressive enhancement, fallback interfaces, device testing container
+
+|No AAA (Authentication/Authorization/Accounting/Auditing)
+|High
+|High
+|Password-based auth for development only, formal AAA system required for production use
+|===
+
+== Architecture Roadmap
+
+=== Phase 1: Core Infrastructure (Complete)
+* **Status**: Implemented
+* **Scope**: VS Code development environment with HTTPS access
+* **Components**: DNS, certificates, proxy, landing zone, basic monitoring
+
+=== Phase 2: Data Analysis Platform (Next)
+* **Timeline**: Week 2-3  
+* **Scope**: Neo4j graph database for immersive data exploration
+* **Components**: 
+  - Neo4j container with 3D visualization
+  - VR interface for graph navigation
+  - Data ingestion pipelines
+  - Collaborative analysis tools
+
+=== Phase 3: Immersive Development (Future)
+* **Timeline**: Week 3-4
+* **Scope**: Full VR development environment
+* **Components**:
+  - Spatial code editing interfaces
+  - 3D system monitoring dashboards  
+  - Multi-user VR collaboration spaces
+
+=== Phase 4: Production Deployment (Future)
+* **Timeline**: week 4+
+* **Scope**: Scalable production infrastructure
+* **Components**:
+  - Kubernetes migration for multi-node
+  - High availability DNS and certificates
+  - Load balancing and auto-scaling
+  - Production monitoring and alerting
+
+== Compliance and Testing
+
+=== Compliance Criteria
+
+.Functional Requirements
+* All services accessible via HTTPS with valid certificates
+* Forward and reverse DNS resolution for `*.warp.vsagcrd.org`
+* External access via forward proxy configuration
+* Mobile operation on Steam Deck with 4+ hour battery life
+
+.Security Requirements
+* No plaintext HTTP for authentication
+* Private network isolation (172.20.0.0/16)
+* Certificate validation and trust chain verification
+* Proxy authentication and access control
+
+.Performance Requirements
+* DNS resolution <100ms for internal queries  
+* VS Code interface responsive <2s load time
+* Container startup <30s from cold boot
+* VR interface >60fps for spatial interactions
+
+=== Test Suite
+
+.Infrastructure Tests
+[source,bash]
+----
+# Certificate validation
+curl -I https://vscode.warp.vsagcrd.org --proxy steamdeck:3128
+
+# DNS resolution testing  
+nslookup engineering-console.warp.vsagcrd.org 172.20.0.2
+
+# Service health checks
+curl -f http://shuttlebay.warp.vsagcrd.org/health
+
+# Proxy configuration validation
+curl -I http://proxy.warp.vsagcrd.org/proxy.pac
+----
+
+.UX Tests
+* Cross-device certificate acceptance flows
+* Proxy auto-configuration (PAC) functionality  
+* LCARS interface rendering across screen sizes
+* VR headset WebXR compatibility validation
+* Mobile responsiveness on phone/tablet devices
+
+.Load Tests
+* Concurrent VS Code sessions (target: 3 users)
+* DNS query throughput (target: 100 qps)
+* Certificate renewal under load
+* Container resource limits validation
+
+.Missing Test Coverage
+* **Performance regression testing** - No baseline metrics captured
+* **Disaster recovery validation** - Recovery procedures untested
+* **Cross-platform browser compatibility** - Limited to Chrome/Firefox
+* **Network partition resilience** - Failover scenarios undefined
+* **Configuration drift detection** - No automated compliance checking
+
+

@@ -1,4 +1,4 @@
-FROM eclipse-mosquitto:latest
+FROM docker.io/eclipse-mosquitto:latest
 
 # Install additional tools for debugging and certificate management
 USER root

@@ -9,11 +9,11 @@ This decision is part of the {arc-topic} architecture.
 
 == Context
 
-The warp bubble environment operates on internal private networks (172.20.0.0/16) and needs to expose HTTPS services with valid certificates to external clients. Traditional reverse proxy solutions don't work well in mobile environments with changing external IPs and network configurations.
+Warp bubble operates on private networks (172.20.0.0/16). HTTPS services need external access with valid certificates. Mobile Steam Deck means changing IPs and network configurations.
 
 == Problem Statement / Motivation
 
-Services within the warp bubble need external access while maintaining security. The mobile nature of the Steam Deck environment means external IP addresses and network configurations change frequently, making traditional port forwarding or reverse proxy solutions impractical.
+Services need external access while maintaining security. Mobile environment means frequent IP and network changes. Traditional port forwarding or reverse proxy solutions impractical.
 
 == Alternatives Considered
 
@@ -26,38 +26,38 @@ Services within the warp bubble need external access while maintaining security.
 
 .Con
 * Requires static external IP
-* Network configuration changes break access
+* Network changes break access
 * Complex firewall management
-* Security exposure of internal services
+* Security exposure
 
 === Forward Tunneling Proxy (Squid)
 
 .Pro
-* Works with changing network configurations
+* Works with changing networks
 * Secure HTTPS tunneling
 * Client-initiated connections
-* No external firewall configuration needed
+* No external firewall configuration
 * Supports mobile environments
 
 .Con
-* Additional proxy configuration required
+* Additional proxy configuration
 * Client needs proxy settings
 * Slightly increased latency
 
 == Decision Outcome
 
-We will implement a forward tunneling proxy using Squid to enable secure external access to internal warp bubble services.
+Implement forward tunneling proxy using Squid for secure external access to internal warp bubble services.
 
 === Justification
 
-The forward tunneling approach provides the flexibility needed for mobile environments while maintaining security. It allows the warp bubble to be network-agnostic and eliminates the need for complex firewall configurations or static IP requirements.
+Forward tunneling provides flexibility for mobile environments while maintaining security. Allows warp bubble to be network-agnostic and eliminates complex firewall configurations or static IP requirements.
 
 === Consequences
 
 * Squid proxy server required within warp bubble
 * Client applications need proxy configuration
-* PAC (Proxy Auto-Configuration) file needed for ease of use
-* Enhanced security through controlled access points
+* PAC (Proxy Auto-Configuration) file needed
+* Enhanced security through controlled access
 * Network mobility fully supported
 
 === Derived / Related Decisions

@@ -9,95 +9,68 @@ This decision is part of the {arc-topic} architecture.
 
 == Context
 
-The warp bubble development environment is designed to be used with VR headsets in immersive environments. Traditional web interfaces with small buttons, complex layouts, and detailed text are difficult to use in VR due to resolution limitations and interaction challenges. The space station/sci-fi theme enhances immersion when working in virtual environments.
+Warp bubble development environment needs system status monitoring and control interface. Star Trek LCARS design provides thematic consistency with naming convention.
 
 == Problem Statement / Motivation
 
-Standard web interfaces are not optimized for VR interaction. Small UI elements, complex navigation, and traditional design patterns create usability issues in VR headsets. Users need large, easily clickable interface elements with clear visual hierarchy. The interface should complement the immersive space-themed VR environment rather than break immersion with generic web design.
+Development environment requires operational status visibility. System monitoring needs intuitive interface for service health, network status, and basic controls.
 
 == Alternatives Considered
 
-=== Traditional Bootstrap/Material Design
+=== Traditional Admin Dashboard
 
 .Pro
-* Familiar design patterns
-* Extensive component libraries
-* Responsive design built-in
-* Wide browser compatibility
+* Familiar interface patterns
+* Comprehensive feature sets
+* Industry standard
 
 .Con
-* Small interface elements difficult in VR
-* Complex layouts hard to navigate with VR controllers
-* Generic appearance breaks sci-fi immersion
-* Not optimized for spatial interaction
+* Generic appearance
+* Complex implementation
+* Overkill for development use
 
-=== LCARS (Library Computer Access/Retrieval System)
+=== Command Line Only
 
 .Pro
-* Large, easily clickable button elements
-* High contrast design optimized for displays
-* Simple, clear design language
-* Fits perfectly with space station VR theme
-* Iconic sci-fi aesthetic enhances immersion
-* Designed for quick access and navigation
+* Minimal resource usage
+* Direct system access
+* Fast operation
 
 .Con
-* Custom CSS development required
-* Limited existing component libraries
-* May appear dated to some users
-* Requires custom design work
+* Poor user experience
+* No visual status indicators
+* Mobile device unfriendly
 
-=== Custom VR-Optimized Interface
+=== LCARS-Themed Interface
 
 .Pro
-* Specifically designed for VR interaction
-* Could integrate 3D elements
-* Optimized for spatial computing
+* Thematic consistency
+* Unique visual design
+* CSS-only implementation possible
+* Mobile-friendly design
 
 .Con
-* Significant development effort required
-* No existing design system to leverage
-* Complex maintenance overhead
-* Browser compatibility challenges
+* Non-standard interface patterns
+* Limited UI component libraries
 
 == Decision Outcome
 
-We will implement LCARS (Library Computer Access/Retrieval System) interface design for all warp bubble web interfaces, particularly the console dashboard and landing pages.
+Implement LCARS-themed monitoring interface for system status and basic controls.
 
 === Justification
 
-LCARS provides the optimal balance of VR usability and thematic consistency. The large button elements and high contrast design make it ideal for VR headset interaction, while the Star Trek aesthetic perfectly complements the space station environment. The simple design language reduces cognitive load when navigating in VR.
+LCARS design provides thematic consistency with Star Trek naming convention while offering unique visual appeal. CSS-only implementation keeps complexity minimal.
 
 === Consequences
 
-* Custom LCARS CSS framework development required
-* Large, easily clickable interface elements throughout
-* High contrast color scheme for VR visibility
-* Simplified navigation patterns optimized for spatial interaction
-* Enhanced immersion in space-themed VR environments
-* Consistent sci-fi aesthetic across all interfaces
-* Reduced eye strain in VR headsets
-
-=== Design Principles
-
-* **Large Touch Targets**: Buttons and interactive elements sized for VR controller precision
-* **High Contrast**: Colors optimized for VR display visibility
-* **Simple Navigation**: Clear hierarchical structure with minimal nesting
-* **Spatial Awareness**: Interface elements positioned for comfortable VR viewing
-* **Thematic Consistency**: Star Trek LCARS aesthetic throughout
-
-=== Implementation Requirements
-
-* LCARS CSS framework with VR-optimized dimensions
-* Color palette designed for VR headset displays
-* Large typography for VR readability
-* Simple grid layouts avoiding complex responsive breakpoints
-* Console interface with LCARS styling
-* Landing page with space station theme integration
+* Custom CSS for LCARS styling
+* Simple HTML interface sufficient
+* Thematic consistency with naming
+* Distinctive visual identity
+* Mobile-responsive design needed
 
 === Derived / Related Decisions
 
-* Landing zone server for proxy configuration (<<ARCID-004>>)
-* Centralized environment configuration (<<ARCID-005>>)
-* Test container for multi-device compatibility (<<ARCID-008>>)
-* Steam Deck mobile development platform (<<ARCID-009>>)
+* Star Trek naming convention (<<ARCID-011>>)
+* Landing zone provides service access (<<ARCID-004>>)
+* Test container for interface validation (<<ARCID-008>>)
