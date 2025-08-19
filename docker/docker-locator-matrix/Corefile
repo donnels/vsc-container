@@ -1,5 +1,5 @@
 # Handle internal warp bubble domains with hosts file
-${CERT_DOMAIN} {
+${CERT_DOMAIN}. {
     hosts /tmp/hosts {
         fallthrough
     }

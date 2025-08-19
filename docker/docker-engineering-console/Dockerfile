@@ -11,16 +11,21 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy extension installation script
-COPY generate_certs.sh /usr/local/bin/install_extensions.sh
+COPY install_extensions.sh /usr/local/bin/install_extensions.sh
 RUN chmod +x /usr/local/bin/install_extensions.sh
 
 # Create necessary directories and set permissions
 RUN mkdir -p /home/coder/.config/code-server /home/coder/.local/share/code-server /home/coder/code \
     && chown -R coder:coder /home/coder
+# Use entrypoint script for code-server startup
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 USER coder
 
 # Install VS Code extensions
 RUN /usr/local/bin/install_extensions.sh
 
-EXPOSE 8443
+EXPOSE 443
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

@@ -39,6 +39,8 @@ services:
       - CERT_NAME=${WARPBUBBLE_NAME_DIAGNOSTIC_ARRAY}.${CERT_DOMAIN}
     dns:
       - ${WARPBUBBLE_IP_LOCATOR_MATRIX}
+    dns_search:
+      - ${CERT_DOMAIN}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_DIAGNOSTIC_ARRAY}
@@ -56,22 +58,20 @@ services:
     environment:
       - CERT_DOMAIN=${CERT_DOMAIN}
       - CERT_NAME=${WARPBUBBLE_NAME_ENGINEERING_CONSOLE}.${CERT_DOMAIN}
-      - PASSWORD=${PASSWORD:-vscode}
+      - PASSWORD=${PASSWORD}
       - CODE_SERVER_PASSWORD_HASH=${CODE_SERVER_PASSWORD_HASH}
       - CODE_SERVER_AUTH_MESSAGE=${CODE_SERVER_AUTH_MESSAGE}
-      - VIRTUAL_HOST=${VIRTUAL_HOST}
-      - NGINX_LOG_PATH=${NGINX_LOG_PATH}
     volumes:
-      - ../:/workspace
-      - ../data:/data
       - engineering-console-config:/home/coder/.config/code-server
       - engineering-console-data:/home/coder/.local/share/code-server
       - engineering-console-code:/home/coder/code
       - cert-output:/etc/letsencrypt:ro
-    command: ["/usr/bin/code-server", "/home/coder/code", "--bind-addr", "0.0.0.0:8443", "--auth", "password", "--cert", "/etc/letsencrypt/live/${VSCODE_CERT_NAME:-vscode}/fullchain.pem", "--cert-key", "/etc/letsencrypt/live/${VSCODE_CERT_NAME:-vscode}/privkey.pem"]
+    # Command moved to Dockerfile for maintainability
     restart: unless-stopped
     dns:
       - ${WARPBUBBLE_IP_LOCATOR_MATRIX}
+    dns_search:
+      - ${CERT_DOMAIN}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_ENGINEERING_CONSOLE}
@@ -95,6 +95,8 @@ services:
       - cert-output:/etc/letsencrypt
     dns:
       - ${WARPBUBBLE_IP_LOCATOR_MATRIX}
+    dns_search:
+      - ${CERT_DOMAIN}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_DEFLECTOR}
@@ -116,6 +118,8 @@ services:
     restart: unless-stopped
     dns:
       - ${WARPBUBBLE_IP_LOCATOR_MATRIX}
+    dns_search:
+      - ${CERT_DOMAIN}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_SHUTTLEBAY}
@@ -133,7 +137,7 @@ services:
     environment:
       - CERT_DOMAIN=${CERT_DOMAIN}
       - FQDN=${WARPBUBBLE_NAME_TRANSPORTER}.${CERT_DOMAIN}
-
+      - DNS_SERVER=${WARPBUBBLE_IP_LOCATOR_MATRIX}
     ports:
       - "${WARPBUBBLE_PORT_TRANSPORTER}:3128"  # Forward proxy port (squid default is 3128)
     volumes:
@@ -147,6 +151,8 @@ services:
     restart: unless-stopped
     dns:
       - ${WARPBUBBLE_IP_LOCATOR_MATRIX}
+    dns_search:
+      - ${CERT_DOMAIN}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_TRANSPORTER}
@@ -166,6 +172,8 @@ services:
     restart: unless-stopped
     dns:
       - ${WARPBUBBLE_IP_LOCATOR_MATRIX}
+    dns_search:
+      - ${CERT_DOMAIN}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_CONSOLE}
@@ -190,6 +198,8 @@ services:
     restart: unless-stopped
     dns:
       - ${WARPBUBBLE_IP_LOCATOR_MATRIX}
+    dns_search:
+      - ${CERT_DOMAIN}
     networks:
       warpbubble:
         ipv4_address: ${WARPBUBBLE_IP_OPTICAL_DATA_NETWORK}

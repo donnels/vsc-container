@@ -12,10 +12,11 @@ RUN mkdir -p /mosquitto/config /mosquitto/data /mosquitto/log /var/run/mosquitto
 
 # Copy configuration files
 COPY mosquitto.conf.template /mosquitto/config/mosquitto.conf.template
+RUN ls -la /usr/local/bin
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Switch back to mosquitto user
+# Switch back to mosquitto user 
 USER mosquitto
 
 # Expose MQTT over TLS port
