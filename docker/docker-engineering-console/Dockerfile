@@ -26,6 +26,6 @@ USER coder
 # Install VS Code extensions
 RUN /usr/local/bin/install_extensions.sh
 
-EXPOSE 443
+EXPOSE 8443
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
