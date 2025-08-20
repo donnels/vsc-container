@@ -6,14 +6,25 @@ set -e
 
 echo "Installing recommended VS Code extensions..."
 
-# Install recommended extensions if not already installed
-EXT_LIST="jebbs.plantuml asciidoctor.asciidoctor-vscode"
-cat extensions.txt | while read ext
-  if ! /usr/bin/code-server --list-extensions | grep -q "$ext"; then
-    echo "Installing extension: $ext"
-    /usr/bin/code-server --install-extension "$ext"
+
+
+# Install recommended extensions if available on Open VSX and not already installed
+cat /tmp/extensions.txt | while read ext; do
+  # Skip empty lines
+  [ -z "$ext" ] && continue
+  publisher="${ext%%.*}"
+  name="${ext#*.}"
+  # Check if extension is available on Open VSX using direct API endpoint
+  status=$(curl -s -o /dev/null -w "%{http_code}" "https://open-vsx.org/api/$publisher/$name/latest")
+  if [ "$status" = "200" ]; then
+    if ! /usr/bin/code-server --list-extensions | grep -q "$ext"; then
+      echo "Installing extension: $ext"
+      /usr/bin/code-server --install-extension "$ext"
+    else
+      echo "Extension already installed: $ext"
+    fi
   else
-    echo "Extension already installed: $ext"
+    echo "Extension $ext not found on Open VSX, skipping."
   fi
 done
 

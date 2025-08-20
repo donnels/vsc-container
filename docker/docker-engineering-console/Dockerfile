@@ -12,6 +12,7 @@ RUN apt-get update \
 
 # Copy extension installation script
 COPY install_extensions.sh /usr/local/bin/install_extensions.sh
+COPY extensions.txt /tmp/extensions.txt
 RUN chmod +x /usr/local/bin/install_extensions.sh
 
 # Create necessary directories and set permissions
