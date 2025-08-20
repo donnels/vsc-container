@@ -3,10 +3,10 @@ function FindProxyForURL(url, host) {
         return "DIRECT";
     }
     if (dnsDomainIs(host, "warp.vsagcrd.org") || shExpMatch(host, "*.warp.vsagcrd.org")) {
-        return "PROXY http://localhost:3128";
+        return "PROXY localhost:3128";
     }
     if (dnsDomainIs(host, "vsagcrd.org") || shExpMatch(host, "*.vsagcrd.org")) {
-        return "PROXY http://macbookpro.fritz.box:3128";
+        return "PROXY macbookpro.fritz.box:3128";
     }
 return "DIRECT";
 }
