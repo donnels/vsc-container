@@ -8,7 +8,7 @@ echo "Installing recommended VS Code extensions..."
 
 # Install recommended extensions if not already installed
 EXT_LIST="jebbs.plantuml asciidoctor.asciidoctor-vscode"
-for ext in $EXT_LIST; do
+cat extensions.txt | while read ext
   if ! /usr/bin/code-server --list-extensions | grep -q "$ext"; then
     echo "Installing extension: $ext"
     /usr/bin/code-server --install-extension "$ext"
