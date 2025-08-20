@@ -1,11 +1,12 @@
 function FindProxyForURL(url, host) {
-    // Forward proxy configuration for SteamDeck development environment
-    
-    // Routes for internal LCARS services - use forward proxy
-    if (dnsDomainIs(host, ".vsagcrd.org")) {
-        return "PROXY steamdeck.fritz.box:3128";
+    if (host === "steamdeck.fritz.box" || host === "localhost") {
+        return "DIRECT";
     }
-    
-    // All other traffic - direct connection
-    return "DIRECT";
+    if (dnsDomainIs(host, "warp.vsagcrd.org") || shExpMatch(host, "*.warp.vsagcrd.org")) {
+        return "PROXY http://steamdeck.fritz.box:3128";
+    }
+    if (dnsDomainIs(host, "vsagcrd.org") || shExpMatch(host, "*.vsagcrd.org")) {
+        return "PROXY http://macbookpro.fritz.box:3128";
+    }
+return "DIRECT";
 }

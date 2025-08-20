@@ -80,113 +80,68 @@
     <div class="container">
         <h1>SteamDeck Development Environment</h1>
         
-        <div class="proxy-info">
-            <h2>Proxy Configuration</h2>
-            <p><strong>Option 1 - PAC File (Recommended):</strong></p>
+    <div class="container">
+        <h1>SteamDeck Proxy Setup</h1>
+        <div style="background: #f0f0f0; border-radius: 8px; padding: 18px 20px; margin-bottom: 24px; border: 1px solid #ddd;">
+            <h2 style="margin-top:0;">Required URLs</h2>
             <div class="copy-container">
+                <strong>SteamDeck PAC:</strong>
+                <code>http://localhost:8080/proxy-local.pac</code>
+                <button class="copy-btn" data-copy="http://localhost:8080/proxy-local.pac" title="Copy">📋</button>
+                <a href="/proxy-local.pac" target="_blank" style="margin-left:10px;">📄</a>
+            </div>
+            <div class="copy-container">
+                <strong>Remote PAC:</strong>
                 <code>http://steamdeck.fritz.box:8080/proxy.pac</code>
-                <button class="copy-btn" onclick="copyToClipboard('http://steamdeck.fritz.box:8080/proxy.pac')" title="Copy to clipboard">📋</button>
+                <button class="copy-btn" data-copy="http://steamdeck.fritz.box:8080/proxy.pac" title="Copy">📋</button>
+                <a href="/proxy.pac" target="_blank" style="margin-left:10px;">📄</a>
             </div>
-            <p><a href="/proxy.pac" target="_blank">📄 Download PAC File</a></p>
-            
-            <p><strong>Option 2 - Manual Proxy:</strong></p>
             <div class="copy-container">
+                <strong>Manual Proxy:</strong>
                 <code>steamdeck.fritz.box:3128</code>
-                <button class="copy-btn" onclick="copyToClipboard('steamdeck.fritz.box:3128')" title="Copy to clipboard">📋</button>
+                <button class="copy-btn" data-copy="steamdeck.fritz.box:3128" title="Copy">📋</button>
             </div>
-            <p><strong>Type:</strong> Forward Proxy (CONNECT method)</p>
         </div>
-
-        <h2>Setup Instructions</h2>
-        <div class="step">
-            <strong>Step 1:</strong> Configure your Meta Quest 3 proxy settings:<br>
-            <div class="copy-container">
-                <strong>PAC URL:</strong> <code>http://steamdeck.fritz.box:8080/proxy.pac</code>
-                <button class="copy-btn" onclick="copyToClipboard('http://steamdeck.fritz.box:8080/proxy.pac')" title="Copy PAC URL">📋</button>
-            </div>
-            <em>OR manually set proxy to: 
-                <span class="copy-container" style="display: inline-flex; vertical-align: middle;">
-                    steamdeck.fritz.box:3128
-                    <button class="copy-btn" onclick="copyToClipboard('steamdeck.fritz.box:3128')" title="Copy proxy address">📋</button>
-                </span>
-            </em>
-        </div>
-        <div class="step">
-            <strong>Step 2:</strong> Test the connection by clicking the link below
-        </div>
-        <div class="step">
-            <strong>Step 3:</strong> Once connected, access VSCode from the menu
-        </div>
-
         <div class="test-link">
-            <a href="https://console.vsagcrd.org" target="_blank">Test HTTPS Connection</a>
+            <a href="https://console.warp.vsagcrd.org" target="_blank">Test HTTPS Connection</a>
         </div>
-
         <details style="margin: 30px 0; border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
-            <summary style="cursor: pointer; font-weight: bold; margin-bottom: 10px;">📄 View PAC File Content</summary>
+            <summary style="cursor: pointer; font-weight: bold; margin-bottom: 10px;">View <b>proxy-local.pac</b> content</summary>
             <div style="background: #f8f9fa; padding: 15px; border-radius: 3px; margin-top: 10px;">
                 <pre style="margin: 0; font-family: 'Courier New', monospace; font-size: 12px; overflow-x: auto;"><code>function FindProxyForURL(url, host) {
-    // Forward proxy configuration for SteamDeck development environment
-    
-    // Routes for internal LCARS services - use forward proxy
-    if (dnsDomainIs(host, ".vsagcrd.org")) {
-        return "PROXY steamdeck.fritz.box:3128";
-    }
-    
-    // All other traffic - direct connection
-    return "DIRECT";
-}</code></pre>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.copy-btn').forEach(function(btn) {
+                btn.addEventListener('click', function(event) {
+                    var text = btn.getAttribute('data-copy');
+                    if (!text) return;
+                    navigator.clipboard.writeText(text).then(function() {
+                        const originalText = btn.textContent;
+                        btn.textContent = '✓';
+                        btn.classList.add('copy-success');
+                        setTimeout(function() {
+                            btn.textContent = originalText;
             </div>
-            <p style="margin-top: 10px; font-size: 14px; color: #666;">
-                <strong>How it works:</strong><br>
-                • <code>*.vsagcrd.org</code> domains → Forward proxy (steamdeck.fritz.box:3128)<br>
-                • All other websites → Direct connection (no proxy)
-            </p>
         </details>
-
+        <details style="margin: 30px 0; border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
+            <summary style="cursor: pointer; font-weight: bold; margin-bottom: 10px;">View <b>proxy.pac</b> content</summary>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 3px; margin-top: 10px;">
+                <pre style="margin: 0; font-family: 'Courier New', monospace; font-size: 12px; overflow-x: auto;"><code>function FindProxyForURL(url, host) {
+                            btn.classList.remove('copy-success');
+                        }, 2000);
+                    }).catch(function(err) {
+                        // Fallback for older browsers
+                        const textArea = document.createElement('textarea');
+                        textArea.value = text;
+                        document.body.appendChild(textArea);
+                        textArea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                        btn.textContent = '✓';
+            </div>
+        </details>
         <p style="text-align: center; color: #666; margin-top: 40px;">
-            <small>Make sure your proxy is configured before clicking the test link</small>
+            <small>Set your proxy. Test your connection. Done.</small>
         </p>
     </div>
-
-    <script>
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(function() {
-                // Find the button that was clicked
-                const button = event.target;
-                const originalText = button.textContent;
-                
-                // Show success feedback
-                button.textContent = '✓';
-                button.classList.add('copy-success');
-                
-                // Reset after 2 seconds
-                setTimeout(function() {
-                    button.textContent = originalText;
-                    button.classList.remove('copy-success');
-                }, 2000);
-            }).catch(function(err) {
-                console.error('Failed to copy text: ', err);
-                // Fallback for older browsers
-                const textArea = document.createElement('textarea');
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                
-                // Show success feedback
-                const button = event.target;
-                const originalText = button.textContent;
-                button.textContent = '✓';
-                button.classList.add('copy-success');
-                
-                setTimeout(function() {
-                    button.textContent = originalText;
-                    button.classList.remove('copy-success');
-                }, 2000);
-            });
-        }
-    </script>
 </body>
 </html>
