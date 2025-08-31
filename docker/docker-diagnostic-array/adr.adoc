@@ -1,206 +1,198 @@
-= ADR: diagnostics-array API
+= ADR: diagnostics-array
+:revdate: 2025-08-29
+:status: Adopted
 
-
-== Context & Goals
-
-We need a *containerized service* that exposes an HTTP API to run diagnostics (ping, traceroute, DNS, HTTP, nmap) across environments. Results must be *baselineable* and *assertable* (OK/NOK per check) to enable drift detection. The system must be *secure by default*, *rate-limited*, and produce *audit trails*. Execution must be *parallel* to keep wall-time low for suites.
+== Context
+We need a container that runs network tests.  
+It must discover, verify, and name targets.  
+It must be secure.  
+It must log.  
+It must run fast without burning the host.  
+It must be easy to add new tools.  
+We also need a graph store to map relationships. Later we will add MAC, ARP, cabling, and physical sites.
 
 == Decision
+Build a FastAPI service named `diagnostics-array`.  
+Start with three tools: *nmap*, *ping*, *dns*.  
+They feed each other. They cover most ground.  
+Design modular runners so new tools drop in clean.  
+Add a graph database with CQL for assets and topology.  
+API is run, baseline, compare.  
+Tests run in parallel with caps.  
+All endpoints are secured.  
+All calls audited.  
+Baselines stored as JSON for now; graph stores relationships.
 
-* Build a *FastAPI* service named `diagnostics-array` with a hierarchical tests API.
-* Families: `ping`, `trace`, `dns`, `scan`, `http`
-* Variants: e.g., `ping.icmpv4`, `ping.icmpv6`, `ping.tcp`, `trace.icmp|udp|tcp`, `dns.a|aaaa|mx|txt|ns|cname`, `scan.nmap-tcp|nmap-udp|nmap-custom`, `http.get|head`
-* Actions per test: `run`, `baseline`, `compare`
-* Parallel execution for suites and multi-item requests (bounded concurrency).
-* Settings-driven safety (timeouts, caps, allowed flags, concurrency, per-key rate limits).
-* AuthN/AuthZ: API keys with HMAC verification, IP allow-lists, scope-based RBAC. All endpoints protected.
-* Audit trails: structured JSON logs with correlation IDs, minimal request previews, result hashes, rotation.
-* Data model: baselines and suites persisted as JSON in `/data` volume.
+== Order of Work
+1. Implement nmap, ping, dns runners.  
+2. Add GraphSink module.  
+3. Upsert results into graph (opt-in).  
+4. Chain outputs: nmap → ping → dns.  
+5. Add suites for parallel runs.  
+6. Add modular registry for new tools.  
+7. Later add curl/http runner.  
+8. Later import ARP, MAC, cabling, physical sites.
 
 == Requirements
 
 === Functional
-
 * Endpoints:
-** `/health` (secured)
-** `/tests/...` (per-family variants) with `run|baseline|compare`
-** `/tests/suites` CRUD + `/tests/suites/{id}/compare`
-** `/tests/capabilities`
-* For each test:
-** *Run* returns an observation (normalized JSON).
-** *Baseline* stores `(params, observation, expected assertions)` under `baseline_id`.
-** *Compare* re-runs with stored params, evaluates assertions → OK/NOK per line + overall; include snapshot diffs where applicable (e.g., open ports).
-* Parallel execution of multiple tests with configurable max concurrency.
-* Variants supported:
-** Ping: icmpv4, icmpv6, tcp
-** Trace: udp, icmp, tcp
-** DNS: a, aaaa, mx, txt, ns, cname
-** Scan: nmap-tcp, nmap-udp, nmap-custom
-** HTTP: get, head
+** `/health`  
+** `/tests/capabilities`  
+** `/tests/scan/nmap-{tcp,udp,custom}/{run,baseline,compare}`  
+** `/tests/ping/{icmpv4,icmpv6,tcp}/{run,baseline,compare}`  
+** `/tests/dns/{a,aaaa,ptr,mx,txt}/{run,baseline,compare}`  
+** `/tests/suites` (CRUD)  
+** `/tests/suites/{id}/compare`  
+* Tests:
+** run → observation JSON.  
+** baseline → save `{params, observation, expected}`.  
+** compare → rerun, evaluate assertions, return OK/NOK.  
+* Chaining:
+** nmap hosts → ping → dns.  
+* Modularity:
+** Runners with a simple contract.  
+** Registered at startup.  
+** Core only dispatches and validates.  
+* Graph:
+** Optional persistence.  
+** Nodes: Device, IP, Port, Service, DNSName, Subnet, Interface, MAC, Location, ScanRun.  
+** Relationships: HAS_IF, HAS_IP, HAS_MAC, HAS_PORT, OFFERS, RESOLVES_TO, IN_SUBNET, LOCATED_AT, CONNECTED_TO, SAW.
 
 === Non-Functional
+* Security by default.  
+* Timeouts, size caps, safe flags.  
+* Parallel but bounded.  
+* Audit with correlation IDs.  
+* Non-root container. Least caps.  
+* Persistence durable across restarts.  
+* Graph writes safe and idempotent.
 
-* *Security*: auth, IP allow-list, scopes; input validation and whitelisted flags for nmap.
-* *Safety*: timeouts; output size caps; rate limiting; bounded concurrency.
-* *Observability*: audit logs; correlation IDs; optional metrics later.
-* *Portability*: single Docker image; non-root user; optional NET_RAW capability.
-* *Persistence*: JSON files in `/data` volume.
-* *Compliance*: scanning only with explicit authorization; log retention managed externally.
+== Interface
+Observations:
+* nmap: `{open_ports:[{ip,proto,port,service,state}]}`  
+* ping: `{reachable, loss_pct, rtt_avg_ms}`  
+* dns: `{answers:[...]}`  
+Assertions: field + op + value.  
+Ops: `== != < <= > >= contains regex`.  
+Compare: `{overall:"OK"|"NOK", assertions:[...], observation, diff?}`
 
-== Interface & Data Contracts
+== Concurrency
+Async with semaphore.  
+`MAX_CONCURRENCY` global.  
+Split pools: fast (ping,dns), heavy (nmap).  
+Cap per suite.  
+Tool timeouts enforced.
 
-=== Path Layout
-----
-/health
-/tests
-  /capabilities
-  /ping/{variant}/run|baseline|compare
-  /trace/{variant}/run|baseline|compare
-  /dns/{variant}/run|baseline|compare
-  /scan/{variant}/run|baseline|compare
-  /http/{variant}/run|baseline|compare
-  /suites                 (POST create/update)
-  /suites/{suite_id}      (GET)
-  /suites/{suite_id}/compare
-----
+== Security
+Auth: API keys (HMAC).  
+AuthZ: scopes per family/action.  
+IP allow-lists.  
+Optional mTLS/JWT later.  
+Whitelist nmap flags.  
+Validate hosts and CIDRs.  
+All endpoints locked.
 
-=== Observation & Assertions
+== Audit
+Middleware logs JSON lines:  
+time, CID, IP, key, scopes, path, status, duration, headers (redacted), body preview, result hash.  
+Rotate by size. Prefer stdout→collector later.
 
-*Observation*: normalized per variant (e.g., `ping`: `{reachable, packet_loss_pct, avg_rtt_ms,...}`; `scan`: `{open_ports[]}`; `http`: `{status, time_ms, header{...}}`).
+== Settings
+Env vars:  
+* `AUTH_ENABLED`  
+* `API_KEY_SECRET`, `API_KEYS_FILE`  
+* `DATA_DIR`  
+* `AUDIT_DIR`, `MAX_AUDIT_BYTES`  
+* `DEFAULT_TIMEOUT`  
+* `MAX_OUTPUT_BYTES`  
+* `MAX_CONCURRENCY`, `MAX_CONCURRENCY_PER_SUITE`  
+* `FAST_POOL_SIZE`, `HEAVY_POOL_SIZE`  
+* `RATE_LIMIT_RPS`, `RATE_LIMIT_BURST`  
+* `ALLOWED_NMAP_FLAGS`  
+* `GRAPH_ENABLED`, `GRAPH_URI`, `GRAPH_USER`, `GRAPH_PASS`, `GRAPH_TLS`  
+* `GRAPH_WRITE_BATCH`, `GRAPH_LABEL_PREFIX`
 
-*Expected assertions*: list of rules on observation fields (`path`, `op`, `value`, optional `tolerance`).
+== Persistence
+Baselines: JSON in `/data`.  
+Suites: JSON in `/data/tests`.  
+Audit logs: JSONL in `/data/audit`.  
+Plan SQLite for baselines.  
+Graph holds topology and history.
 
-Supported operators: `== != < <= > >= ~= contains not_contains in not_in regex`.
+== Deployment
+Docker image with tools.  
+Non-root user.  
+Optional NET_RAW.  
+Expose 8080.  
+Mount `/data`.  
+Scale behind ingress.  
+Redis for rate limits when scaling out.
 
-*Compare result*: 
-----
-{overall: "OK"|"NOK", assertions: [...], observation, snapshot_diff?}
-----
+== Graph Model
+Nodes: Device, IP, Port, Service, DNSName, Subnet, Interface, MAC, Location, ScanRun.  
+Rels:  
+* `(Device)-[:HAS_IF]->(Interface)`  
+* `(Interface)-[:HAS_IP]->(IP)`  
+* `(Interface)-[:HAS_MAC]->(MAC)`  
+* `(IP)-[:HAS_PORT]->(Port)`  
+* `(Port)-[:OFFERS]->(Service)`  
+* `(DNSName)-[:RESOLVES_TO]->(IP)`  
+* `(IP)-[:IN_SUBNET]->(Subnet)`  
+* `(Device)-[:LOCATED_AT]->(Location)`  
+* `(Interface)-[:CONNECTED_TO]->(Interface)`  
+* `(:ScanRun)-[:SAW]->(...)`
 
-== Concurrency & Rate Limiting
+Indexes: unique on IP.addr, MAC.addr, DNSName.name, Subnet.cidr, Device.key, Interface.if_key.  
+Ingest uses MERGE.  
+Set first_seen, last_seen.  
+Batch writes.  
+Fail soft if graph is down.
 
-* Parallel execution model:
-** Bounded async concurrency with a global semaphore (`MAX_CONCURRENCY`).
-** Per-suite runs dispatch items concurrently up to `MAX_CONCURRENCY_PER_SUITE`.
-** Long-running tasks (nmap) respect tool-level timeouts.
-* Rate limiting:
-** Per-API-key token bucket: `RATE_LIMIT_RPS`, `RATE_LIMIT_BURST`.
-** Enforced before handler execution; failures audited.
-** Option: Redis backend for multi-replica fairness.
+== Risks
+* Scans abused. Guard with scopes.  
+* Scans trigger IDS. Keep defaults mild.  
+* Heavy scans choke host. Cap concurrency.  
+* JSON files race. Use SQLite later.  
+* In-memory rate limits break at scale. Use Redis.  
+* Logs lost if disk fills. Stream out.  
+* Graph upserts can duplicate. Pick good keys.  
+* Plugins can crash. Sandbox them.
 
-== Security Architecture
+== Acceptance
+* Every call needs a valid key and scope.  
+* Suite runs in parallel. Time ≈ slowest test.  
+* Rate limits enforced and logged.  
+* Baseline→Compare returns OK/NOK.  
+* nmap flags outside whitelist blocked.  
+* Audit logs have correlation IDs.  
+* Graph upserts succeed when enabled; API still works when disabled.  
 
-* *Authentication*: API keys via `X-API-Key` or `Authorization: Bearer`. Server stores HMAC-SHA256 of key using `API_KEY_SECRET`; hot-reloaded from file.
-* *Authorization*: scopes like `ping:run`, `dns:baseline`, `scan:compare`, `suite:compare`. Wildcards supported (`scan:*`, `*`).
-* *Network policy*: IP allow-list per key. Optional mTLS at ingress.
-* *Command safety*: whitelisted `nmap` flags; CIDR/host validation; size/time caps.
-* *Secure defaults*: all endpoints require scopes; non-root container; optional NET_RAW only if needed.
+== Problems (blunt)
+* API keys leak. Move to OIDC/mTLS later.  
+* JSON baselines fragile. Use DB.  
+* Disk logs weak. Stream out.  
+* Too many assertion ops cause brittle tests. Start small.  
+* One fat image is wide attack surface. Split later.  
+* NET_RAW often banned. Fall back to TCP scans.  
+* Don’t drift into full monitoring. Keep scope tight.
 
-== Settings & Sanity Controls
-
-Environment variables:
-
-* `AUTH_ENABLED`
-* `API_KEY_SECRET`, `API_KEYS_FILE`
-* `AUDIT_DIR`, `MAX_AUDIT_BYTES`
-* Execution limits:
-** `DEFAULT_TIMEOUT`, per-tool overrides
-** `MAX_OUTPUT_BYTES`
-** `MAX_CONCURRENCY`, `MAX_CONCURRENCY_PER_SUITE`
-** `ALLOWED_NMAP_FLAGS`
-* Rate limiting: `RATE_LIMIT_RPS`, `RATE_LIMIT_BURST`
-* Data: `DATA_DIR`
-
-== Persistence & Data Layout
-
-* Baselines: `/data/{baseline_id}.json`
-** Fields: `baseline_id, family, variant, created_at, params, observation, expected`
-* Suites: `/data/tests/{suite_id}.json`
-* Audit logs: `/data/audit/audit.log` + rotated `audit-*.log.gz`
-
-== Audit & Observability
-
-* Middleware writes JSON lines:
-** timestamp, correlation ID, client IP, key_id, scopes, path, method, status, duration, headers (redacted), request preview, result summary (bytes, return code, hash).
-* Correlation: `X-Correlation-Id` echoed in responses.
-* Rotation: compress on size threshold.
-* Metrics (future): request counters by scope, errors, rate-limit hits, durations.
-
-== Containerization & Deployment
-
-* Dockerfile: Python 3.11 slim + tools (`ping`, `traceroute`, `dnsutils`, `nmap`, `curl`).
-* Runtime: non-root; `NET_RAW`/`NET_ADMIN` only if needed.
-* Expose port 8080.
-* Volumes: host `./data` mounted to `/data`.
-* Scaling: horizontal scale; shared `/data` (e.g., RWX PVC); Redis for distributed rate limiting.
-
-== Risks & Mitigations
-
-* Abuse of scanning → strict auth, scopes, rate limits, audits.
-* Noisy scans triggering IDS → conservative defaults, whitelisted flags, explicit consent.
-* Single host contention → bounded concurrency + timeouts.
-* Clock drift → ensure container time sync.
-* JSON storage scaling → acceptable at current size; DB possible later.
-
-== Alternatives Considered
-
-* CLI-only image: simple, no baselining/asserts/audits.
-* Agent per host: local context, higher ops cost.
-* DB storage: richer queries, higher complexity.
-
-== Acceptance Criteria
-
-* All endpoints require valid key + scope; unauthorized access audited.
-* Suite with ≥5 tests completes in parallel (wall-time ≈ max of longest).
-* Rate limits enforced with 429 and audit log entry.
-* Baseline→Compare yields OK/NOK per assertion with observation.
-* Nmap flags validated against whitelist.
-* Audit file generated with correlation IDs and rotation.
+== Why This Order
+Discovery (nmap).  
+Verification (ping).  
+Identity (dns).  
+Modularity early.  
+Graph for relationships.  
+Add http, arp, mac, cabling, sites later.  
+Keep spine strong before adding muscle.
 
 == Next Steps
-
-* Implement bounded concurrency with async semaphore + runner registry.
-* Centralize assert engine and baseline helpers.
-* Add `/tests/capabilities` auto-generated from registry.
-* Consider Prometheus metrics and Redis-backed rate limiting.
-
-== Critical Review (Hemingway Style)
-
-=== Scope Creep
-Three projects in one: diagnostics runner, baseline/assertion engine, secure API. Each adds weight. Decide if all are needed now.
-
-=== Security
-API keys leak. IP allow-lists brittle. Consider OIDC, JWT, or mTLS. Nmap via API is risky; may trigger IDS. Strong warnings needed.
-
-=== Parallelism
-Async + semaphore works, but heavy scans choke small tests. Use split pools: fast vs heavy. Cap concurrency tightly.
-
-=== State & Storage
-JSON files simple, but race-prone. Use SQLite or Redis for safe concurrent writes. Decide: repo-driven configs vs runtime changes.
-
-=== Audit
-JSONL rotation crude. Better to stream logs to stdout and ship. Result hashes can be noisy; filter fields.
-
-=== Assertions
-Operators too many. Users will write fragile checks. Start simple. Defaults hide failure--explicit beats implicit.
-
-=== Rate Limits
-In-memory buckets break in multi-replica. Use Redis. Add client backoff.
-
-=== Container & Runtime
-All tools in one image = big attack surface. Split "safe" vs "dangerous" images. NET_RAW not allowed in many clusters; need fallback.
-
-=== Complexity vs Value
-API tree too wide. Could simplify to one `POST /tests/run` with mode flag. Suites verge on test frameworks; question scope.
-
-=== Compliance
-Exposing scans by API raises audit flags. Need retention, signing, tamper-proof logs. JSONL alone is weak.
-
-=== Recommendations
-* Simplify first: start with ping + http. Add nmap later.
-* Audit to stdout. Let platform collect.
-* Trim assertion ops.
-* Use DB not raw JSON.
-* Split worker pools.
-* Rethink auth: keys now, OIDC later.
-* Define scope: monitoring vs ad-hoc testing.
+Build v1 with nmap, ping, dns runners.  
+Implement runner registry.  
+Add GraphSink.  
+Wire chaining and suites.  
+Keep assertions simple.  
+Split pools.  
+Audit to stdout optional.  
+Plan SQLite + Redis.  
+Add http and ARP/MAC imports later.
